@@ -2,6 +2,11 @@
  * filter.js : Filter and scoring logic for Terserah
  */
 
+const INVALID_AMENITIES = new Set([
+  'hairdresser', 'pitch', 'optician', 'post_office', 'travel_agency',
+  'bus_stop', 'atm', 'bank', 'pharmacy', 'fuel', 'parking', 'car_wash'
+]);
+
 const TIME_SLOTS = {
   morning:   [5, 11],
   noon:      [11, 14],
@@ -10,9 +15,6 @@ const TIME_SLOTS = {
   any:       [0, 24],
 };
 
-/**
- * Calculate distance in km between two lat/lon pairs (Haversine formula)
- */
 export function haversineKm(lat1, lon1, lat2, lon2) {
   const R = 6371;
   const dLat = (lat2 - lat1) * Math.PI / 180;
@@ -24,10 +26,6 @@ export function haversineKm(lat1, lon1, lat2, lon2) {
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
-/**
- * Check if a place is open based on OSM opening_hours string
- * Returns: 'open' | 'closed' | 'unknown'
- */
 export function checkOpenStatus(openingHoursStr, hour) {
   if (!openingHoursStr) return 'unknown';
 
@@ -71,13 +69,29 @@ export function checkOpenStatus(openingHoursStr, hour) {
   return 'unknown';
 }
 
-/**
- * Filter places by food / atmosphere query keywords (LIKE search)
- */
 function matchesFoodQuery(place, query) {
   if (!query || !query.trim()) return true;
 
   const keywords = query.toLowerCase().split(',').map(k => k.trim()).filter(Boolean);
+
+  // Exclude non-food amenities strictly
+  const osmVal = (place.osmTags?.amenity || place.osmTags?.osm_value || '').toLowerCase();
+  if (INVALID_AMENITIES.has(osmVal)) return false;
+
+  const nameLower = place.name.toLowerCase();
+  if (nameLower.includes('barber') || nameLower.includes('travel') || nameLower.includes('futsal') || nameLower.includes('express')) {
+    return false;
+  }
+
+  // 1. Direct match with tags
+  if (place.tags && place.tags.some(t => {
+    const lowerTag = t.toLowerCase();
+    return keywords.some(k => lowerTag.includes(k));
+  })) {
+    return true;
+  }
+
+  // 2. Direct match with name / cuisine / address
   const searchable = [
     place.name,
     place.address,
@@ -87,46 +101,66 @@ function matchesFoodQuery(place, query) {
     place.osmTags?.amenity || '',
   ].join(' ').toLowerCase();
 
-  return keywords.some(kw => searchable.includes(kw));
+  if (keywords.some(kw => searchable.includes(kw))) {
+    return true;
+  }
+
+  // 3. If user searches cafe/beverage items (matcha, coffee, latte, tea, etc.)
+  // and the place is genuinely a cafe or bakery
+  const cafeBeverages = ['matcha', 'kopi', 'coffee', 'latte', 'tea', 'teh', 'croissant', 'dessert', 'waffle', 'cake', 'roti'];
+  const isCafeQuery = keywords.some(k => cafeBeverages.includes(k));
+  if (isCafeQuery) {
+    const isGenuinelyCafe = place.osmTags?.amenity === 'cafe' ||
+      place.osmTags?.amenity === 'bakery' ||
+      place.osmTags?.shop === 'bakery' ||
+      place.osmTags?.osm_value === 'cafe' ||
+      nameLower.includes('cafe') ||
+      nameLower.includes('coffee') ||
+      nameLower.includes('kopi');
+    if (isGenuinelyCafe) return true;
+  }
+
+  return false;
 }
 
-/**
- * Filter and score pool of candidate places
- * @param {object[]} places  (raw places from API)
- * @param {object}   filters (user filter values)
- * @param {number}   userLat
- * @param {number}   userLon
- * @returns {object[]}
- */
 export function filterPlaces(places, filters, userLat, userLon) {
   const { timeOfDay = 'any', minRating = 1.0, budget = 'any', foodQuery = '', radiusKm = 5 } = filters;
   const currentHour = new Date().getHours();
 
-  return places
+  const candidates = places
     .map(place => {
       const distance = haversineKm(userLat, userLon, place.lat, place.lon);
       const openStatus = checkOpenStatus(place.openingHours, currentHour);
       return { ...place, distance, openStatus };
     })
     .filter(place => {
-      // 1. Radius filter: allow small leeway (+20%) in case candidates are slightly past circle
-      if (place.distance > radiusKm * 1.25) return false;
+      // 1. Filter out invalid amenities
+      const osmVal = (place.osmTags?.amenity || place.osmTags?.osm_value || '').toLowerCase();
+      if (INVALID_AMENITIES.has(osmVal)) return false;
 
-      // 2. Rating filter
-      if (minRating > 1.0 && place.rating < (minRating - 0.2)) return false;
+      const nameLower = place.name.toLowerCase();
+      if (nameLower.includes('barber') || nameLower.includes('travel') || nameLower.includes('futsal') || nameLower.includes('express')) {
+        return false;
+      }
 
-      // 3. Budget filter
+      // 2. Radius filter (with 35% leeway)
+      if (place.distance > radiusKm * 1.35) return false;
+
+      // 3. Rating filter
+      if (minRating > 1.0 && place.rating < (minRating - 0.25)) return false;
+
+      // 4. Budget filter
       if (budget !== 'any' && place.budgetTier && place.budgetTier !== budget) return false;
 
-      // 4. Time filter: only filter out if explicitly closed during user slot
+      // 5. Time filter
       if (timeOfDay !== 'any' && place.openStatus === 'closed') return false;
 
-      // 5. Food / Keyword filter
+      // 6. Food query filter
       if (!matchesFoodQuery(place, foodQuery)) return false;
 
       return true;
     })
-    // Deduplicate by name (keep closest)
+    // Deduplicate by name
     .reduce((acc, place) => {
       const existing = acc.find(p => p.name.toLowerCase() === place.name.toLowerCase());
       if (!existing) {
@@ -136,19 +170,28 @@ export function filterPlaces(places, filters, userLat, userLon) {
         acc[idx] = place;
       }
       return acc;
-    }, [])
-    // Sort primarily by distance
-    .sort((a, b) => a.distance - b.distance);
+    }, []);
+
+  // If user searched a specific query, prioritize direct name/tag matches!
+  const qLower = (foodQuery || '').toLowerCase().trim();
+  if (qLower) {
+    const directMatches = candidates.filter(p =>
+      p.name.toLowerCase().includes(qLower) || p.tags?.some(t => t.toLowerCase().includes(qLower))
+    );
+
+    // If direct matches exist (like Feel Matcha), return them!
+    if (directMatches.length > 0) {
+      return directMatches.sort((a, b) => a.distance - b.distance);
+    }
+  }
+
+  return candidates.sort((a, b) => a.distance - b.distance);
 }
 
-/**
- * Random pick algorithm from filtered pool
- */
 export function pickRandom(pool, lastPickedId = null) {
   if (!pool || pool.length === 0) return null;
   if (pool.length === 1) return pool[0];
 
-  // Try to avoid repeating the last picked place
   const candidates = pool.filter(p => p.id !== lastPickedId);
   const targetList = candidates.length > 0 ? candidates : pool;
 

@@ -222,6 +222,7 @@ async function fetchAndFilterPool() {
       lat: state.lat,
       lon: state.lon,
       radiusKm: state.radiusKm,
+      foodQuery: state.foodQuery,
     });
 
     state.pool = filterPlaces(rawPlaces, {
