@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Terserah — Kamu Mau ke Mana?</title>
+  <meta name="description" content="Bingung mau ke mana? Biarkan Terserah yang memilihkan tempat untukmu secara acak!" />
+  <meta name="theme-color" content="#6C63FF" />
+
+  <!-- PWA -->
+  <link rel="manifest" href="manifest.json" />
+  <link rel="apple-touch-icon" href="assets/images/icon-192.png" />
+
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+  <!-- Main CSS -->
+  <link rel="stylesheet" href="assets/css/style.css" />
+</head>
+<body>
+
+  <!-- ===== HEADER ===== -->
+  <header class="app-header">
+    <div class="header-inner">
+      <div class="brand">
+        <span class="brand-emoji">🎲</span>
+        <h1 class="brand-name">Terserah</h1>
+        <span class="brand-tagline">kamu mau ke mana?</span>
+      </div>
+      <div class="header-actions">
+        <button class="icon-btn" id="btn-wishlist" title="Wishlist" aria-label="Buka Wishlist">
+          ❤️ <span class="badge" id="wishlist-badge" hidden>0</span>
+        </button>
+        <button class="icon-btn" id="btn-history" title="Riwayat" aria-label="Buka Riwayat">🕐</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ===== MAIN LAYOUT ===== -->
+  <main class="app-layout">
+
+    <!-- MAP -->
+    <section class="map-section" aria-label="Peta Lokasi">
+      <div id="map"></div>
+      <div class="map-overlay-info" id="pool-indicator" hidden>
+        <span id="pool-count">0</span> tempat ditemukan
+      </div>
+    </section>
+
+    <!-- FILTER PANEL -->
+    <aside class="filter-panel" id="filter-panel" aria-label="Panel Filter">
+
+      <!-- Location -->
+      <div class="filter-group" id="group-location">
+        <label class="filter-label">📍 Lokasi Saya</label>
+        <div class="location-row">
+          <input type="text" id="input-location" class="text-input" placeholder="Nama kota / area..." readonly />
+          <button class="btn-icon-round" id="btn-detect-location" title="Deteksi otomatis" aria-label="Deteksi lokasi otomatis">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="18" height="18"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+          </button>
+        </div>
+        <div class="radius-row">
+          <label class="sublabel">Radius: <strong id="radius-value">5</strong> km</label>
+          <input type="range" id="slider-radius" min="1" max="30" value="5" step="1" class="range-slider" aria-label="Pilih radius" />
+        </div>
+      </div>
+
+      <!-- Category -->
+      <div class="filter-group">
+        <label class="filter-label">🏷️ Jenis Tempat</label>
+        <div class="chip-grid" id="category-chips" role="group" aria-label="Pilih kategori">
+          <button class="chip active" data-value="hangout">☕ Nongkrong</button>
+          <button class="chip" data-value="food">🍜 Makan</button>
+          <button class="chip" data-value="entertainment">🎮 Hiburan</button>
+          <button class="chip" data-value="nature">🌿 Alam</button>
+          <button class="chip" data-value="shopping">🛍️ Belanja</button>
+          <button class="chip" data-value="culture">🎨 Budaya</button>
+          <button class="chip" data-value="fitness">🏋️ Olahraga</button>
+          <button class="chip" data-value="spiritual">🕌 Religi</button>
+        </div>
+      </div>
+
+      <!-- Time -->
+      <div class="filter-group">
+        <label class="filter-label">⏰ Waktu Kunjungan</label>
+        <div class="chip-grid" id="time-chips" role="group" aria-label="Pilih waktu">
+          <button class="chip active" data-value="any">✨ Kapan Saja</button>
+          <button class="chip" data-value="morning">🌅 Pagi</button>
+          <button class="chip" data-value="noon">☀️ Siang</button>
+          <button class="chip" data-value="afternoon">🌤️ Sore</button>
+          <button class="chip" data-value="evening">🌙 Malam</button>
+        </div>
+        <button class="btn-link" id="btn-time-now">Pakai waktu sekarang</button>
+      </div>
+
+      <!-- Rating -->
+      <div class="filter-group">
+        <label class="filter-label">⭐ Rating Minimum</label>
+        <div class="rating-row">
+          <input type="range" id="slider-rating" min="1" max="5" value="3" step="0.5" class="range-slider" aria-label="Pilih rating minimum" />
+          <span class="rating-display" id="rating-value">3.0 ⭐</span>
+        </div>
+      </div>
+
+      <!-- Food Query -->
+      <div class="filter-group" id="group-food" hidden>
+        <label class="filter-label">🍽️ Cari Menu / Suasana</label>
+        <input type="text" id="input-food-query" class="text-input" placeholder="kopi, wifi, seafood, vegan..." />
+        <p class="hint">Pisahkan dengan koma untuk multi-keyword</p>
+      </div>
+
+      <!-- CTA -->
+      <div class="cta-area">
+        <button class="btn-surprise" id="btn-surprise">
+          🎲 <span>Pilihkan Aku!</span>
+        </button>
+        <button class="btn-secondary" id="btn-reroll" hidden>
+          🔄 Coba Lagi
+        </button>
+      </div>
+
+    </aside>
+  </main>
+
+  <!-- ===== RESULT CARD (slide-up) ===== -->
+  <div class="result-overlay" id="result-overlay" hidden role="dialog" aria-modal="true" aria-labelledby="result-name">
+    <div class="result-backdrop" id="result-backdrop"></div>
+    <div class="result-card" id="result-card">
+      <button class="result-close" id="result-close" aria-label="Tutup hasil">✕</button>
+
+      <div class="result-photo-wrap">
+        <img id="result-photo" src="assets/images/placeholder.svg" alt="Foto tempat" />
+        <div class="result-category-badge" id="result-category-badge">📍</div>
+      </div>
+
+      <div class="result-body">
+        <h2 class="result-name" id="result-name">—</h2>
+
+        <div class="result-meta">
+          <span class="meta-item" id="result-rating">⭐ —</span>
+          <span class="meta-sep">·</span>
+          <span class="meta-item" id="result-distance">📍 — km</span>
+          <span class="meta-sep">·</span>
+          <span class="meta-item open-status" id="result-open-status">—</span>
+        </div>
+
+        <p class="result-address" id="result-address">—</p>
+
+        <div class="result-tags" id="result-tags"></div>
+
+        <div class="result-actions">
+          <a class="btn-action btn-maps" id="btn-maps" href="#" target="_blank" rel="noopener noreferrer">
+            🗺️ Google Maps
+          </a>
+          <a class="btn-action btn-waze" id="btn-waze" href="#" target="_blank" rel="noopener noreferrer">
+            🚗 Waze
+          </a>
+          <button class="btn-action btn-save" id="btn-save-wishlist">
+            🤍 Simpan
+          </button>
+          <button class="btn-action btn-share" id="btn-share">
+            📤 Share
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== WISHLIST DRAWER ===== -->
+  <div class="drawer-overlay" id="wishlist-overlay" hidden role="dialog" aria-modal="true" aria-label="Wishlist">
+    <div class="drawer-backdrop" id="wishlist-backdrop"></div>
+    <div class="drawer" id="wishlist-drawer">
+      <div class="drawer-header">
+        <h2>❤️ Wishlist</h2>
+        <button class="icon-btn" id="close-wishlist" aria-label="Tutup wishlist">✕</button>
+      </div>
+      <div class="drawer-body" id="wishlist-list">
+        <p class="empty-state">Belum ada tempat tersimpan.</p>
+      </div>
+      <div class="drawer-footer" id="wishlist-footer" hidden>
+        <button class="btn-danger-sm" id="btn-clear-wishlist">Hapus Semua</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== HISTORY DRAWER ===== -->
+  <div class="drawer-overlay" id="history-overlay" hidden role="dialog" aria-modal="true" aria-label="Riwayat">
+    <div class="drawer-backdrop" id="history-backdrop"></div>
+    <div class="drawer" id="history-drawer">
+      <div class="drawer-header">
+        <h2>🕐 Riwayat Pick</h2>
+        <button class="icon-btn" id="close-history" aria-label="Tutup riwayat">✕</button>
+      </div>
+      <div class="drawer-body" id="history-list">
+        <p class="empty-state">Belum ada riwayat.</p>
+      </div>
+      <div class="drawer-footer" id="history-footer" hidden>
+        <button class="btn-danger-sm" id="btn-clear-history">Hapus Semua</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== TOAST ===== -->
+  <div class="toast-container" id="toast-container" aria-live="polite"></div>
+
+  <!-- ===== LOADING OVERLAY ===== -->
+  <div class="loading-overlay" id="loading-overlay" hidden aria-busy="true" aria-label="Sedang mencari...">
+    <div class="loading-box">
+      <div class="dice-roll">🎲</div>
+      <p>Lagi nyari tempat<span class="dots"></span></p>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script type="module" src="assets/js/app.js"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js').catch(() => {});
+      });
+    }
+  </script>
+</body>
+</html>
