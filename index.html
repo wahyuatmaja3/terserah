@@ -28,9 +28,9 @@
         <h1 class="brand-title">Kamu mau ke mana?</h1>
       </div>
       <div class="header-nav">
-        <button class="nav-btn" id="btn-api-key" aria-label="Atur Kunci Google Maps">
-          <span class="nav-btn-icon">⚙️</span>
-          <span class="nav-btn-label">API Key</span>
+        <button class="nav-btn" id="btn-api-key" aria-label="Atur Kunci Google Maps dan Batas Kuota">
+          <span class="nav-btn-icon">🛡️</span>
+          <span class="nav-btn-label">API & Kuota</span>
         </button>
         <button class="nav-btn" id="btn-wishlist" aria-label="Buka koleksi favorit">
           <span class="nav-btn-icon">❤️</span>
@@ -64,9 +64,21 @@
           <span class="api-notice-icon">🗺️</span>
           <div class="api-notice-text">
             <strong>Google Maps API Key Belum Terpasang</strong>
-            <p>Masukkan API Key Google Maps Anda untuk mengaktifkan peta dan pencarian Google Places.</p>
+            <p>Masukkan API Key Anda untuk mengaktifkan peta dan pencarian Google Places.</p>
           </div>
           <button class="btn-setup-key" id="btn-open-api-modal">Atur API Key</button>
+        </div>
+      </div>
+
+      <!-- Quota Exceeded Lock Notice -->
+      <div class="api-notice-banner" id="quota-lock-banner" hidden>
+        <div class="api-notice-box quota-box spotlight-card">
+          <span class="api-notice-icon">🛑</span>
+          <div class="api-notice-text">
+            <strong style="color: #ef4444;">Perlindungan Kuota Aktif</strong>
+            <p id="quota-lock-desc">Batas penggunaan tercapai. Program dihentikan otomatis untuk mencegah tagihan Pay-As-You-Go.</p>
+          </div>
+          <button class="btn-setup-key btn-unlock" id="btn-manage-quota">Buka Pengaturan Kuota</button>
         </div>
       </div>
     </section>
@@ -188,19 +200,21 @@
     </aside>
   </div>
 
-  <!-- ===== GOOGLE MAPS API KEY MODAL ===== -->
+  <!-- ===== GOOGLE MAPS API KEY & QUOTA GUARD MODAL ===== -->
   <div class="modal-overlay" id="api-key-modal" hidden role="dialog" aria-modal="true" aria-labelledby="api-modal-title">
     <div class="modal-backdrop" id="api-modal-backdrop"></div>
-    <div class="modal-card spotlight-card" style="max-width: 440px;">
+    <div class="modal-card spotlight-card" style="max-width: 480px;">
       <button class="modal-close" id="api-modal-close" aria-label="Tutup modal kunci API">✕</button>
 
       <div class="modal-inner-padding">
-        <span class="api-modal-badge">KONFIGURASI</span>
-        <h2 class="api-modal-title" id="api-modal-title">Google Maps API Key</h2>
-        <p class="api-modal-desc">
-          Terserah menggunakan <strong>Google Places API</strong> untuk memberikan hasil pencarian yang sangat akurat, foto tempat asli, ulasan, serta status buka/tutup.
-        </p>
+        <div style="display: flex; gap: 8px; align-items: center;">
+          <span class="api-modal-badge">PENGATURAN API</span>
+          <span class="api-modal-badge" style="background: rgba(16, 185, 129, 0.15); color: #10b981; border-color: rgba(16, 185, 129, 0.3);">ANTI PAY-AS-YOU-GO</span>
+        </div>
 
+        <h2 class="api-modal-title" id="api-modal-title">Google Maps & Perlindungan Biaya</h2>
+
+        <!-- Key Input Section -->
         <div class="api-key-input-wrap">
           <label class="slider-label" for="input-api-key">Kunci API Anda:</label>
           <input
@@ -211,20 +225,61 @@
             autocomplete="off"
             spellcheck="false"
           />
-          <small class="field-hint">Kunci tersimpan secara aman di browser lokal Anda (LocalStorage) dan tidak dikirim ke server mana pun.</small>
+          <small class="field-hint">
+            🔒 <strong>Keamanan GitHub:</strong> Kunci hanya tersimpan di <code>localStorage</code> peramban Anda. Kunci <strong>TIDAK AKAN bocor</strong> saat Anda push kode ke GitHub.
+          </small>
+        </div>
+
+        <!-- Quota Guard Settings Box -->
+        <div class="quota-settings-box">
+          <h3 style="font-size: 0.85rem; font-weight: 700; color: #f8fafc; margin-bottom: 8px;">🛡️ Kuota & Pengaman Tagihan</h3>
+          
+          <div class="quota-stat-row">
+            <span>Panggilan Hari Ini:</span>
+            <strong id="stat-daily-calls">0 / 80</strong>
+          </div>
+          <div class="quota-stat-row">
+            <span>Panggilan Bulan Ini:</span>
+            <strong id="stat-monthly-calls">0 / 1500</strong>
+          </div>
+
+          <div style="margin-top: 10px;">
+            <label class="slider-label" for="input-daily-limit" style="font-size: 0.76rem;">Batas Panggilan Maksimal Per Hari:</label>
+            <input
+              type="number"
+              id="input-daily-limit"
+              class="field-input"
+              value="80"
+              min="10"
+              max="1000"
+              style="padding: 6px 10px; font-size: 0.82rem; margin-top: 4px;"
+            />
+            <small class="field-hint">Jika batas tercapai, aplikasi otomatis berhenti mengirim panggilan ke Google.</small>
+          </div>
+
+          <div id="quota-lock-status-area" style="margin-top: 10px;" hidden>
+            <div style="background: rgba(239, 68, 68, 0.15); border: 1px solid #ef4444; border-radius: 6px; padding: 8px 10px; font-size: 0.78rem; color: #fca5a5;">
+              <strong id="lock-reason-text">Aplikasi terkunci.</strong>
+              <button id="btn-reset-lock" class="action-link" style="color: #ffffff; display: block; margin-top: 4px; text-decoration: underline;">
+                Buka Kunci Pengaman Sekarang
+              </button>
+            </div>
+          </div>
         </div>
 
         <div class="api-modal-actions">
           <button class="btn-primary" id="btn-save-api-key">
-            <span>Simpan & Aktifkan Google Maps</span>
+            <span>Simpan Pengaturan</span>
           </button>
         </div>
 
         <div class="api-help-links">
           <a href="https://console.cloud.google.com/google/maps-apis/credentials" target="_blank" rel="noopener noreferrer" class="action-link">
-            Dapatkan Google Maps API Key gratis di Google Cloud Console
+            Buka Google Cloud Console (Dapatkan Kredit Gratis $200/Bulan)
           </a>
-          <small style="color: #64748b; font-size: 0.72rem; display: block; margin-top: 4px;">Google memberikan kredit gratis senilai $200 setiap bulan.</small>
+          <small style="color: #64748b; font-size: 0.72rem; display: block; margin-top: 4px;">
+            💡 <strong>Rekomendasi Google:</strong> Pasang pembatasan HTTP Referrer ke <code>https://&lt;username&gt;.github.io/*</code> pada Google Cloud Console agar API Key Anda tidak bisa disalahgunakan pihak lain.
+          </small>
         </div>
       </div>
     </div>

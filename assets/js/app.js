@@ -1,6 +1,7 @@
 /**
  * app.js : Main application controller for Terserah
  * Exclusively powered by Google Maps JavaScript API & Google Places
+ * Features Anti Pay-As-You-Go Quota Protection
  */
 
 import {
@@ -8,10 +9,12 @@ import {
   geocodeAddress, reverseGeocodeLatLng, CATEGORY_LABELS
 } from './api.js';
 import { filterPlaces, pickRandom } from './filter.js';
-import { addToHistory } from './storage.js';
+import {
+  addToHistory, getUsageData, isQuotaLocked, updateQuotaLimits, resetSafetyLock
+} from './storage.js';
 import {
   initGoogleMap, setUserLocation, updateRadius, showResultOnMap,
-  clearResultMarker, renderPoolPins, clearPoolPins, getGoogleMapInstance
+  clearResultMarker, renderPoolPins, clearPoolPins
 } from './map.js';
 import {
   showToast, showLoading, hideLoading,
@@ -69,11 +72,71 @@ const btnSaveApiKey    = $('btn-save-api-key');
 const apiKeyBanner     = $('api-key-banner');
 const btnOpenApiModal  = $('btn-open-api-modal');
 
+// Quota Protection Elements
+const quotaLockBanner     = $('quota-lock-banner');
+const quotaLockDesc       = $('quota-lock-desc');
+const btnManageQuota      = $('btn-manage-quota');
+const statDailyCalls      = $('stat-daily-calls');
+const statMonthlyCalls    = $('stat-monthly-calls');
+const inputDailyLimit     = $('input-daily-limit');
+const quotaLockStatusArea = $('quota-lock-status-area');
+const lockReasonText      = $('lock-reason-text');
+const btnResetLock        = $('btn-reset-lock');
+
+/* ============================================================
+   Quota Safety & Pay-As-You-Go Guard
+   ============================================================ */
+function syncQuotaUI() {
+  const usage = getUsageData();
+  const quota = isQuotaLocked();
+
+  if (statDailyCalls) {
+    statDailyCalls.textContent = `${usage.dailyCount} / ${usage.dailyLimit}`;
+  }
+  if (statMonthlyCalls) {
+    statMonthlyCalls.textContent = `${usage.monthlyCount} / ${usage.monthlyLimit}`;
+  }
+  if (inputDailyLimit) {
+    inputDailyLimit.value = usage.dailyLimit;
+  }
+
+  if (quota.locked) {
+    if (quotaLockBanner) {
+      quotaLockBanner.hidden = false;
+      quotaLockDesc.textContent = `${quota.reason}. Program dihentikan sementara untuk menghindari tagihan.`;
+    }
+    if (quotaLockStatusArea) {
+      quotaLockStatusArea.hidden = false;
+      lockReasonText.textContent = `Terkunci: ${quota.reason}`;
+    }
+    btnSurprise.disabled = true;
+    btnSurprise.querySelector('.btn-label').textContent = 'Batas Kuota Tercapai';
+  } else {
+    if (quotaLockBanner) quotaLockBanner.hidden = true;
+    if (quotaLockStatusArea) quotaLockStatusArea.hidden = true;
+    btnSurprise.disabled = false;
+    btnSurprise.querySelector('.btn-label').textContent = state.pool.length > 0 ? 'Pilihkan Lagi' : 'Pilihkan Tempat Sekarang';
+  }
+}
+
+if (btnManageQuota) {
+  btnManageQuota.addEventListener('click', openApiKeyModal);
+}
+
+if (btnResetLock) {
+  btnResetLock.addEventListener('click', () => {
+    resetSafetyLock();
+    syncQuotaUI();
+    showToast('Kunci pengaman dibuka kembali.', 'success');
+  });
+}
+
 /* ============================================================
    API Key Modal Management
    ============================================================ */
 function openApiKeyModal() {
   inputApiKey.value = state.apiKey || '';
+  syncQuotaUI();
   apiKeyModal.hidden = false;
   setTimeout(() => inputApiKey.focus(), 100);
 }
@@ -89,6 +152,12 @@ if (btnOpenApiModal) btnOpenApiModal.addEventListener('click', openApiKeyModal);
 
 btnSaveApiKey.addEventListener('click', async () => {
   const enteredKey = inputApiKey.value.trim();
+  const newDailyLimit = parseInt(inputDailyLimit.value, 10);
+
+  if (newDailyLimit && newDailyLimit > 0) {
+    updateQuotaLimits(newDailyLimit, null);
+  }
+
   if (!enteredKey) {
     showToast('Masukkan API key yang valid.', 'error');
     return;
@@ -102,13 +171,13 @@ btnSaveApiKey.addEventListener('click', async () => {
     closeApiKeyModal();
     if (apiKeyBanner) apiKeyBanner.hidden = true;
 
-    // Initialize Map and Services
     const gMap = initGoogleMap(state.lat, state.lon, handleMapClick);
     initServices(gMap);
     state.mapReady = true;
 
     await setLocation(state.lat, state.lon, 'Jakarta Pusat');
-    showToast('Google Maps aktif dan siap digunakan!', 'success');
+    syncQuotaUI();
+    showToast('Google Maps & Pengaman Kuota siap digunakan!', 'success');
   } catch (err) {
     showToast(err.message || 'Gagal memvalidasi Google Maps API key.', 'error');
   } finally {
@@ -134,6 +203,7 @@ async function setLocation(lat, lon, knownName = null) {
     const name = await reverseGeocodeLatLng(lat, lon);
     inputLocation.value = name || `${lat.toFixed(4)}, ${lon.toFixed(4)}`;
   }
+  syncQuotaUI();
 }
 
 async function handleMapClick(lat, lon) {
@@ -185,10 +255,11 @@ async function handleLocationSearch() {
     } else {
       showToast('Area tidak ditemukan di Google Maps. Coba ketik nama lain.', 'error');
     }
-  } catch {
-    showToast('Gagal mencari area. Periksa jaringan atau API key.', 'error');
+  } catch (err) {
+    showToast(err.message || 'Gagal mencari area.', 'error');
   } finally {
     hideLoading();
+    syncQuotaUI();
   }
 }
 
@@ -245,12 +316,19 @@ inputFoodQuery.addEventListener('input', () => {
 });
 
 /* ============================================================
-   Execution via Google Places
+   Execution via Google Places with Quota Guard
    ============================================================ */
 async function fetchAndFilterPool() {
   if (!state.mapReady) {
     openApiKeyModal();
     showToast('Pasang Google Maps API key terlebih dahulu.', 'error');
+    return false;
+  }
+
+  const quota = isQuotaLocked();
+  if (quota.locked) {
+    syncQuotaUI();
+    showToast(`Perlindungan Kuota: ${quota.reason}`, 'error', 4500);
     return false;
   }
 
@@ -274,6 +352,7 @@ async function fetchAndFilterPool() {
     }, state.lat, state.lon);
 
     updatePoolIndicator(state.pool.length);
+    syncQuotaUI();
 
     if (state.pool.length === 0) {
       hideLoading();
@@ -290,8 +369,9 @@ async function fetchAndFilterPool() {
     return true;
   } catch (err) {
     hideLoading();
+    syncQuotaUI();
     console.error('Google Places error:', err);
-    showToast('Terjadi kendala saat mengakses Google Places API.', 'error');
+    showToast(err.message || 'Terjadi kendala saat mengakses Google Places API.', 'error', 4500);
     return false;
   }
 }
@@ -302,7 +382,7 @@ function displayPlace(place) {
   showResultOnMap(place);
   showResultCard(place);
   btnReroll.hidden = false;
-  btnSurprise.querySelector('.btn-label').textContent = 'Pilihkan Lagi';
+  syncQuotaUI();
 }
 
 function pickRandomAndShow() {
@@ -337,12 +417,10 @@ btnReroll.addEventListener('click', () => {
    Bootstrapping
    ============================================================ */
 async function boot() {
-  // Initialize React Bits components
   initClickSpark({ sparkColor: '#f97316', sparkSize: 10, sparkCount: 8 });
   initSpotlightCards('.spotlight-card');
   initMagnet('.magnet-btn', 0.22);
 
-  // Initialize UI drawers
   initResultCardEvents();
   initWishlistDrawer((selectedPlace) => {
     displayPlace(selectedPlace);
@@ -351,8 +429,8 @@ async function boot() {
     displayPlace(selectedPlace);
   });
   refreshWishlistBadge();
+  syncQuotaUI();
 
-  // Check Google Maps API Key
   if (state.apiKey) {
     try {
       showLoading();
@@ -367,14 +445,13 @@ async function boot() {
       if (apiKeyBanner) apiKeyBanner.hidden = false;
     } finally {
       hideLoading();
+      syncQuotaUI();
     }
   } else {
-    // Show banner prompting user to enter Google Maps API key
     if (apiKeyBanner) apiKeyBanner.hidden = false;
     inputLocation.value = 'Jakarta Pusat (Belum aktif)';
   }
 
-  // Background non-blocking GPS attempt
   if (navigator.geolocation) {
     navigator.geolocation.getCurrentPosition(
       async (pos) => {

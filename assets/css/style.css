@@ -1160,5 +1160,42 @@ h1, h2, h3, h4 {
   margin-top: 4px;
 }
 
+/* Quota Box & Pay-As-You-Go Safety */
+.quota-box {
+  border-color: #ef4444;
+  background: rgba(43, 17, 20, 0.95);
+}
+
+.btn-unlock {
+  background: #ef4444;
+  border-color: #ef4444;
+  color: #ffffff;
+}
+
+.btn-unlock:hover {
+  background: #dc2626;
+}
+
+.quota-settings-box {
+  background: var(--bg-surface-elev);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 14px;
+}
+
+.quota-stat-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  padding: 3px 0;
+}
+
+.quota-stat-row strong {
+  font-family: var(--font-mono);
+  color: var(--accent);
+}
+
 /* Utility */
 [hidden] { display: none !important; }

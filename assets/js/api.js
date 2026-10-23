@@ -1,7 +1,10 @@
 /**
  * api.js : Google Maps JavaScript API & Google Places Service for Terserah
  * Exclusively uses Google Places API & Google Geocoding (no OpenStreetMap)
+ * Integrated with Anti Pay-As-You-Go Quota Guard
  */
+
+import { isQuotaLocked, recordApiCall, lockDueToGoogleError } from './storage.js';
 
 export const CATEGORY_GOOGLE_TYPES = {
   hangout:       ['cafe', 'bar'],
@@ -151,6 +154,12 @@ export async function fetchPlacesViaGoogle({ categories, lat, lon, radiusKm, foo
     throw new Error('PlacesService belum siap. Muat Google Maps terlebih dahulu.');
   }
 
+  // Quota guard check before request
+  const quota = isQuotaLocked();
+  if (quota.locked) {
+    throw new Error(`Perlindungan Kuota: ${quota.reason}. Program dihentikan untuk menghindari tagihan Pay-As-You-Go.`);
+  }
+
   const radiusMeters = radiusKm * 1000;
   const location = new google.maps.LatLng(lat, lon);
   const placesMap = new Map();
@@ -161,6 +170,9 @@ export async function fetchPlacesViaGoogle({ categories, lat, lon, radiusKm, foo
   if (foodQuery && foodQuery.trim()) {
     const keywords = foodQuery.split(',').map(s => s.trim()).filter(Boolean);
     for (const kw of keywords) {
+      // Recheck quota
+      if (isQuotaLocked().locked) break;
+
       await new Promise((resolve) => {
         placesService.textSearch(
           {
@@ -169,7 +181,10 @@ export async function fetchPlacesViaGoogle({ categories, lat, lon, radiusKm, foo
             query: `${kw} di sekitar`,
           },
           (results, status) => {
-            if (status === google.maps.places.PlacesServiceStatus.OK && results) {
+            if (status === google.maps.places.PlacesServiceStatus.OVER_QUERY_LIMIT || status === google.maps.places.PlacesServiceStatus.REQUEST_DENIED) {
+              lockDueToGoogleError('Google API: Batas kuota harian atau kredit terlampaui (OVER_QUERY_LIMIT)');
+            } else if (status === google.maps.places.PlacesServiceStatus.OK && results) {
+              recordApiCall(1);
               results.forEach((p) => {
                 const norm = normalizeGooglePlace(p, primaryCategory);
                 if (norm) {
@@ -192,7 +207,10 @@ export async function fetchPlacesViaGoogle({ categories, lat, lon, radiusKm, foo
     typesToQuery.push({ cat, type: types[0] });
   });
 
-  for (const item of typesToQuery.slice(0, 3)) {
+  for (const item of typesToQuery.slice(0, 2)) {
+    // Recheck quota
+    if (isQuotaLocked().locked) break;
+
     await new Promise((resolve) => {
       placesService.nearbySearch(
         {
@@ -201,7 +219,10 @@ export async function fetchPlacesViaGoogle({ categories, lat, lon, radiusKm, foo
           type: item.type,
         },
         (results, status) => {
-          if (status === google.maps.places.PlacesServiceStatus.OK && results) {
+          if (status === google.maps.places.PlacesServiceStatus.OVER_QUERY_LIMIT || status === google.maps.places.PlacesServiceStatus.REQUEST_DENIED) {
+            lockDueToGoogleError('Google API: Batas kuota harian atau kredit terlampaui (OVER_QUERY_LIMIT)');
+          } else if (status === google.maps.places.PlacesServiceStatus.OK && results) {
+            recordApiCall(1);
             results.forEach((p) => {
               const norm = normalizeGooglePlace(p, item.cat);
               if (norm && !placesMap.has(norm.id)) {
@@ -223,6 +244,11 @@ export async function fetchPlacesViaGoogle({ categories, lat, lon, radiusKm, foo
  */
 export function geocodeAddress(query) {
   return new Promise((resolve, reject) => {
+    if (isQuotaLocked().locked) {
+      reject(new Error('Perlindungan Kuota aktif. Program dihentikan untuk menghindari tagihan.'));
+      return;
+    }
+
     if (!geocoder) {
       if (window.google && window.google.maps) {
         geocoder = new google.maps.Geocoder();
@@ -233,7 +259,11 @@ export function geocodeAddress(query) {
     }
 
     geocoder.geocode({ address: query }, (results, status) => {
-      if (status === google.maps.GeocoderStatus.OK && results && results.length > 0) {
+      if (status === google.maps.GeocoderStatus.OVER_QUERY_LIMIT || status === google.maps.GeocoderStatus.REQUEST_DENIED) {
+        lockDueToGoogleError('Google API Geocoder: Batas kuota tercapai (OVER_QUERY_LIMIT)');
+        resolve(null);
+      } else if (status === google.maps.GeocoderStatus.OK && results && results.length > 0) {
+        recordApiCall(1);
         const item = results[0];
         const lat = item.geometry.location.lat();
         const lon = item.geometry.location.lng();
@@ -254,6 +284,11 @@ export function geocodeAddress(query) {
  */
 export function reverseGeocodeLatLng(lat, lon) {
   return new Promise((resolve) => {
+    if (isQuotaLocked().locked) {
+      resolve(null);
+      return;
+    }
+
     if (!geocoder) {
       if (window.google && window.google.maps) {
         geocoder = new google.maps.Geocoder();
@@ -264,9 +299,12 @@ export function reverseGeocodeLatLng(lat, lon) {
     }
 
     geocoder.geocode({ location: { lat, lng: lon } }, (results, status) => {
-      if (status === google.maps.GeocoderStatus.OK && results && results.length > 0) {
+      if (status === google.maps.GeocoderStatus.OVER_QUERY_LIMIT || status === google.maps.GeocoderStatus.REQUEST_DENIED) {
+        lockDueToGoogleError('Google API Geocoder: Batas kuota tercapai (OVER_QUERY_LIMIT)');
+        resolve(null);
+      } else if (status === google.maps.GeocoderStatus.OK && results && results.length > 0) {
+        recordApiCall(1);
         const item = results[0];
-        // Shorten address for clean UI
         const parts = item.formatted_address.split(',');
         const shortName = parts.slice(0, 2).join(',').trim();
         resolve(shortName || item.formatted_address);
