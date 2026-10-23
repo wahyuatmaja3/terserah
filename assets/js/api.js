@@ -1,5 +1,5 @@
 /**
- * api.js — OpenStreetMap API integration for Terserah
+ * api.js : OpenStreetMap API integration for Terserah
  * Primary: Overpass API
  * Fallback: Photon (Komoot OpenStreetMap) + Nominatim (OSM)
  */

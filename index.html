@@ -3,195 +3,229 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Terserah — Kamu Mau ke Mana?</title>
-  <meta name="description" content="Bingung mau ke mana? Biarkan Terserah yang memilihkan tempat untukmu secara acak!" />
-  <meta name="theme-color" content="#6C63FF" />
+  <title>Terserah : Pemilih Tempat Acak</title>
+  <meta name="description" content="Bingung mau ke mana? Terserah memilihkan tempat nongkrong, makan, dan rekreasi secara acak berbasis preferensimu." />
+  <meta name="theme-color" content="#090a0f" />
 
   <!-- PWA -->
   <link rel="manifest" href="manifest.json" />
 
-  <!-- Leaflet CSS via Cloudflare CDN with Unpkg fallback -->
+  <!-- Google Fonts: Plus Jakarta Sans & Space Grotesk -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@600;700&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet" />
+
+  <!-- Leaflet CSS -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
 
-  <!-- Main CSS -->
+  <!-- Main Anti-Slop CSS -->
   <link rel="stylesheet" href="assets/css/style.css" />
 </head>
 <body>
 
-  <!-- ===== HEADER ===== -->
+  <!-- ===== APP HEADER ===== -->
   <header class="app-header">
-    <div class="header-inner">
+    <div class="header-container">
       <div class="brand">
-        <span class="brand-emoji">🎲</span>
-        <h1 class="brand-name">Terserah</h1>
-        <span class="brand-tagline">kamu mau ke mana?</span>
+        <span class="brand-badge">TERSERAH</span>
+        <h1 class="brand-title">Kamu mau ke mana?</h1>
       </div>
-      <div class="header-actions">
-        <button class="icon-btn" id="btn-wishlist" title="Wishlist" aria-label="Buka Wishlist">
-          ❤️ <span class="badge" id="wishlist-badge" hidden>0</span>
+      <div class="header-nav">
+        <button class="nav-btn" id="btn-wishlist" aria-label="Buka koleksi favorit">
+          <span class="nav-btn-icon">❤️</span>
+          <span class="nav-btn-label">Tersimpan</span>
+          <span class="badge-count" id="wishlist-badge" hidden>0</span>
         </button>
-        <button class="icon-btn" id="btn-history" title="Riwayat" aria-label="Buka Riwayat">🕐</button>
+        <button class="nav-btn" id="btn-history" aria-label="Buka riwayat tempat">
+          <span class="nav-btn-icon">🕐</span>
+          <span class="nav-btn-label">Riwayat</span>
+        </button>
       </div>
     </div>
   </header>
 
-  <!-- ===== MAIN LAYOUT ===== -->
-  <main class="app-layout">
+  <!-- ===== WORKSPACE LAYOUT ===== -->
+  <div class="app-workspace">
 
-    <!-- MAP -->
-    <section class="map-section" aria-label="Peta Lokasi">
+    <!-- MAP VIEWPORT -->
+    <section class="map-viewport" aria-label="Peta Interaktif">
       <div id="map"></div>
-      <div class="map-overlay-info" id="pool-indicator" hidden>
-        <span id="pool-count">0</span> tempat ditemukan di sekitar
+      <div class="map-hint" id="map-hint">
+        <span>💡 Klik area mana pun pada peta untuk geser titik acuan</span>
       </div>
-      <div class="map-hint-pill">
-        👉 Klik di mana saja pada peta untuk pindah lokasi
+      <div class="pool-badge" id="pool-indicator" hidden>
+        <span id="pool-count">0</span> tempat ditemukan dalam radius
       </div>
     </section>
 
-    <!-- FILTER PANEL -->
-    <aside class="filter-panel" id="filter-panel" aria-label="Panel Filter">
+    <!-- CONTROL PANEL -->
+    <aside class="control-panel" id="filter-panel" aria-label="Panel Preferensi">
 
-      <!-- Location -->
-      <div class="filter-group" id="group-location">
-        <label class="filter-label">📍 Lokasi Saya</label>
-        <div class="location-row">
-          <input
-            type="text"
-            id="input-location"
-            class="text-input"
-            placeholder="Ketik kota/area lalu tekan Enter..."
-            aria-label="Nama kota atau area"
-          />
-          <button class="btn-icon-round" id="btn-search-location" title="Cari kota / area" aria-label="Cari kota / area">
-            🔍
-          </button>
-          <button class="btn-icon-round" id="btn-detect-location" title="Gunakan GPS saya" aria-label="Deteksi lokasi GPS otomatis">
-            📍
-          </button>
+      <!-- Location Section -->
+      <section class="panel-section">
+        <div class="section-header">
+          <span class="section-tag">01</span>
+          <h2 class="section-heading">Titik Acuan & Jarak</h2>
         </div>
-        <div class="radius-row">
-          <div class="radius-label-row">
-            <label class="sublabel" for="slider-radius">Radius: <strong id="radius-value">5</strong> km</label>
+
+        <div class="location-box">
+          <div class="input-with-actions">
+            <input
+              type="text"
+              id="input-location"
+              class="field-input"
+              placeholder="Ketik nama area/kota..."
+              aria-label="Cari kota atau area"
+            />
+            <button class="btn-input-action" id="btn-search-location" title="Cari area" aria-label="Cari area">
+              🔍
+            </button>
+            <button class="btn-input-action" id="btn-detect-location" title="Deteksi GPS" aria-label="Deteksi posisi GPS">
+              📍
+            </button>
           </div>
-          <input type="range" id="slider-radius" min="1" max="30" value="5" step="1" class="range-slider" aria-label="Pilih radius dalam kilometer" />
-        </div>
-      </div>
 
-      <!-- Category -->
-      <div class="filter-group">
-        <label class="filter-label">🏷️ Jenis Tempat</label>
-        <div class="chip-grid" id="category-chips" role="group" aria-label="Pilih kategori">
-          <button class="chip active" data-value="hangout">☕ Nongkrong</button>
-          <button class="chip" data-value="food">🍜 Makan</button>
-          <button class="chip" data-value="entertainment">🎮 Hiburan</button>
-          <button class="chip" data-value="nature">🌿 Alam</button>
-          <button class="chip" data-value="shopping">🛍️ Belanja</button>
-          <button class="chip" data-value="culture">🎨 Budaya</button>
-          <button class="chip" data-value="fitness">🏋️ Olahraga</button>
-          <button class="chip" data-value="spiritual">🕌 Religi</button>
+          <div class="slider-group">
+            <div class="slider-meta">
+              <label class="slider-label" for="slider-radius">Radius Jangkauan</label>
+              <span class="slider-val"><strong id="radius-value">5</strong> km</span>
+            </div>
+            <input type="range" id="slider-radius" min="1" max="30" value="5" step="1" class="slider-track" />
+          </div>
         </div>
-      </div>
+      </section>
 
-      <!-- Budget Filter -->
-      <div class="filter-group">
-        <label class="filter-label">💸 Estimasi Budget</label>
-        <div class="chip-grid" id="budget-chips" role="group" aria-label="Pilih budget">
-          <button class="chip active" data-value="any">✨ Semua</button>
-          <button class="chip" data-value="cheap">🪙 Hemat (&lt; 30rb)</button>
-          <button class="chip" data-value="moderate">💵 Sedang (30-100rb)</button>
-          <button class="chip" data-value="pricey">💳 Agak Mahal (100-300rb)</button>
-          <button class="chip" data-value="luxury">💎 Mewah (&gt; 300rb)</button>
+      <!-- Category Section -->
+      <section class="panel-section">
+        <div class="section-header">
+          <span class="section-tag">02</span>
+          <h2 class="section-heading">Jenis Tempat</h2>
         </div>
-      </div>
 
-      <!-- Time -->
-      <div class="filter-group">
-        <div class="filter-header-flex">
-          <label class="filter-label">⏰ Waktu Kunjungan</label>
-          <button class="btn-link" id="btn-time-now">Pakai jam sekarang</button>
+        <div class="chips-container" id="category-chips" role="group" aria-label="Pilih jenis tempat">
+          <button class="filter-chip active" data-value="hangout">☕ Nongkrong</button>
+          <button class="filter-chip" data-value="food">🍜 Makan</button>
+          <button class="filter-chip" data-value="entertainment">🎮 Hiburan</button>
+          <button class="filter-chip" data-value="nature">🌿 Alam</button>
+          <button class="filter-chip" data-value="shopping">🛍️ Belanja</button>
+          <button class="filter-chip" data-value="culture">🎨 Budaya</button>
+          <button class="filter-chip" data-value="fitness">🏋️ Olahraga</button>
+          <button class="filter-chip" data-value="spiritual">🕌 Religi</button>
         </div>
-        <div class="chip-grid" id="time-chips" role="group" aria-label="Pilih waktu">
-          <button class="chip active" data-value="any">✨ Kapan Saja</button>
-          <button class="chip" data-value="morning">🌅 Pagi</button>
-          <button class="chip" data-value="noon">☀️ Siang</button>
-          <button class="chip" data-value="afternoon">🌤️ Sore</button>
-          <button class="chip" data-value="evening">🌙 Malam</button>
-        </div>
-      </div>
+      </section>
 
-      <!-- Rating -->
-      <div class="filter-group">
-        <div class="filter-header-flex">
-          <label class="filter-label">⭐ Rating Minimum</label>
-          <span class="rating-display" id="rating-value">3.0 ⭐</span>
+      <!-- Budget Section -->
+      <section class="panel-section">
+        <div class="section-header">
+          <span class="section-tag">03</span>
+          <h2 class="section-heading">Estimasi Anggaran</h2>
         </div>
-        <div class="rating-row">
-          <input type="range" id="slider-rating" min="1" max="5" value="3" step="0.5" class="range-slider" aria-label="Pilih rating minimum" />
+
+        <div class="chips-container" id="budget-chips" role="group" aria-label="Pilih kisaran anggaran">
+          <button class="filter-chip active" data-value="any">✨ Semua</button>
+          <button class="filter-chip" data-value="cheap">🪙 Hemat (&lt; 30rb)</button>
+          <button class="filter-chip" data-value="moderate">💵 Sedang (30-100rb)</button>
+          <button class="filter-chip" data-value="pricey">💳 Agak Mahal (100-300rb)</button>
+          <button class="filter-chip" data-value="luxury">💎 Mewah (&gt; 300rb)</button>
         </div>
-      </div>
+      </section>
 
-      <!-- Food Query -->
-      <div class="filter-group" id="group-food">
-        <label class="filter-label">🍽️ Cari Menu / Suasana</label>
-        <input type="text" id="input-food-query" class="text-input" placeholder="contoh: kopi, matcha, wifi, seafood, cozy..." />
-        <p class="hint">Pisahkan dengan koma untuk multi-keyword</p>
-      </div>
+      <!-- Time & Rating Section -->
+      <section class="panel-section">
+        <div class="section-header-flex">
+          <div class="section-header">
+            <span class="section-tag">04</span>
+            <h2 class="section-heading">Waktu Kunjungan</h2>
+          </div>
+          <button class="action-link" id="btn-time-now">Gunakan jam saat ini</button>
+        </div>
 
-      <!-- CTA -->
-      <div class="cta-area">
-        <button class="btn-surprise" id="btn-surprise">
-          🎲 <span>Pilihkan Aku!</span>
+        <div class="chips-container" id="time-chips" role="group" aria-label="Pilih waktu kunjungan">
+          <button class="filter-chip active" data-value="any">✨ Kapan Saja</button>
+          <button class="filter-chip" data-value="morning">🌅 Pagi</button>
+          <button class="filter-chip" data-value="noon">☀️ Siang</button>
+          <button class="filter-chip" data-value="afternoon">🌤️ Sore</button>
+          <button class="filter-chip" data-value="evening">🌙 Malam</button>
+        </div>
+
+        <div class="slider-group mt-12">
+          <div class="slider-meta">
+            <label class="slider-label" for="slider-rating">Standar Rating Minimum</label>
+            <span class="slider-val" id="rating-value">3.0 ⭐</span>
+          </div>
+          <input type="range" id="slider-rating" min="1" max="5" value="3" step="0.5" class="slider-track" />
+        </div>
+      </section>
+
+      <!-- Food & Atmosphere Keyword -->
+      <section class="panel-section" id="group-food">
+        <div class="section-header">
+          <span class="section-tag">05</span>
+          <h2 class="section-heading">Kata Kunci Menu / Suasana</h2>
+        </div>
+
+        <input
+          type="text"
+          id="input-food-query"
+          class="field-input"
+          placeholder="contoh: kopi susu, matcha, outdoor, wifi, seafood..."
+        />
+        <p class="field-hint">Pisahkan kata kunci dengan koma untuk variasi pencarian</p>
+      </section>
+
+      <!-- Main Action Buttons -->
+      <div class="action-footer">
+        <button class="btn-primary magnet-btn" id="btn-surprise">
+          <span class="btn-icon">🎲</span>
+          <span class="btn-label">Pilihkan Tempat Sekarang</span>
         </button>
         <button class="btn-secondary" id="btn-reroll" hidden>
-          🔄 Coba Tempat Lain
+          <span class="btn-icon">🔄</span>
+          <span class="btn-label">Coba Tempat Lain dari Daftar</span>
         </button>
       </div>
 
     </aside>
-  </main>
+  </div>
 
-  <!-- ===== RESULT CARD (slide-up) ===== -->
-  <div class="result-overlay" id="result-overlay" hidden role="dialog" aria-modal="true" aria-labelledby="result-name">
-    <div class="result-backdrop" id="result-backdrop"></div>
-    <div class="result-card" id="result-card">
-      <button class="result-close" id="result-close" aria-label="Tutup hasil">✕</button>
+  <!-- ===== RESULT CARD MODAL (React Bits SpotlightCard) ===== -->
+  <div class="modal-overlay" id="result-overlay" hidden role="dialog" aria-modal="true" aria-labelledby="result-name">
+    <div class="modal-backdrop" id="result-backdrop"></div>
+    <div class="modal-card spotlight-card" id="result-card">
+      <button class="modal-close" id="result-close" aria-label="Tutup rekomendasi">✕</button>
 
-      <div class="result-photo-wrap">
-        <div class="result-photo-banner">
-          <span class="banner-icon">🎯</span>
-          <span class="banner-sub">Rekomendasi Terserah</span>
-        </div>
-        <div class="result-category-badge" id="result-category-badge">📍 Tempat</div>
+      <div class="card-visual">
+        <div class="card-visual-pattern"></div>
+        <div class="card-category-badge" id="result-category-badge">📍 Rekomendasi</div>
       </div>
 
-      <div class="result-body">
-        <h2 class="result-name" id="result-name">—</h2>
+      <div class="card-content">
+        <h2 class="place-name" id="result-name">Nama Tempat</h2>
 
-        <div class="result-meta">
-          <span class="meta-item" id="result-rating">⭐ —</span>
-          <span class="meta-sep">·</span>
-          <span class="meta-item" id="result-distance">📍 — km</span>
-          <span class="meta-sep">·</span>
-          <span class="meta-item open-status" id="result-open-status">—</span>
+        <div class="place-meta">
+          <span class="meta-tag" id="result-rating">⭐ 4.5</span>
+          <span class="meta-dot">·</span>
+          <span class="meta-tag" id="result-distance">📍 1.8 km</span>
+          <span class="meta-dot">·</span>
+          <span class="meta-tag open-status" id="result-open-status">Buka Sekarang</span>
         </div>
 
-        <p class="result-address" id="result-address">—</p>
+        <p class="place-address" id="result-address">Jalan raya nomor sekian</p>
 
-        <div class="result-tags" id="result-tags"></div>
+        <div class="place-tags" id="result-tags"></div>
 
-        <div class="result-actions">
-          <a class="btn-action btn-maps" id="btn-maps" href="#" target="_blank" rel="noopener noreferrer">
+        <div class="card-actions-grid">
+          <a class="action-btn btn-gmaps" id="btn-maps" href="#" target="_blank" rel="noopener noreferrer">
             🗺️ Google Maps
           </a>
-          <a class="btn-action btn-waze" id="btn-waze" href="#" target="_blank" rel="noopener noreferrer">
+          <a class="action-btn btn-waze" id="btn-waze" href="#" target="_blank" rel="noopener noreferrer">
             🚗 Waze
           </a>
-          <button class="btn-action btn-save" id="btn-save-wishlist">
-            🤍 Simpan
+          <button class="action-btn btn-wish" id="btn-save-wishlist">
+            Simpan
           </button>
-          <button class="btn-action btn-share" id="btn-share">
-            📤 Share
+          <button class="action-btn btn-share" id="btn-share">
+            Bagikan
           </button>
         </div>
       </div>
@@ -199,53 +233,54 @@
   </div>
 
   <!-- ===== WISHLIST DRAWER ===== -->
-  <div class="drawer-overlay" id="wishlist-overlay" hidden role="dialog" aria-modal="true" aria-label="Wishlist">
+  <div class="drawer-overlay" id="wishlist-overlay" hidden role="dialog" aria-modal="true" aria-label="Koleksi Tersimpan">
     <div class="drawer-backdrop" id="wishlist-backdrop"></div>
-    <div class="drawer" id="wishlist-drawer">
+    <div class="drawer-panel" id="wishlist-drawer">
       <div class="drawer-header">
-        <h2>❤️ Wishlist Saya</h2>
-        <button class="icon-btn" id="close-wishlist" aria-label="Tutup wishlist">✕</button>
+        <h2 class="drawer-title">Koleksi Tersimpan</h2>
+        <button class="drawer-close" id="close-wishlist" aria-label="Tutup koleksi">✕</button>
       </div>
-      <div class="drawer-body" id="wishlist-list">
-        <p class="empty-state">Belum ada tempat tersimpan.</p>
+      <div class="drawer-scroll" id="wishlist-list">
+        <p class="empty-state">Koleksi tersimpan masih kosong.</p>
       </div>
       <div class="drawer-footer" id="wishlist-footer" hidden>
-        <button class="btn-danger-sm" id="btn-clear-wishlist">Hapus Semua</button>
+        <button class="btn-clear" id="btn-clear-wishlist">Bersihkan Koleksi</button>
       </div>
     </div>
   </div>
 
   <!-- ===== HISTORY DRAWER ===== -->
-  <div class="drawer-overlay" id="history-overlay" hidden role="dialog" aria-modal="true" aria-label="Riwayat">
+  <div class="drawer-overlay" id="history-overlay" hidden role="dialog" aria-modal="true" aria-label="Riwayat Tempat">
     <div class="drawer-backdrop" id="history-backdrop"></div>
-    <div class="drawer" id="history-drawer">
+    <div class="drawer-panel" id="history-drawer">
       <div class="drawer-header">
-        <h2>🕐 Riwayat Tempat</h2>
-        <button class="icon-btn" id="close-history" aria-label="Tutup riwayat">✕</button>
+        <h2 class="drawer-title">Riwayat Rekomendasi</h2>
+        <button class="drawer-close" id="close-history" aria-label="Tutup riwayat">✕</button>
       </div>
-      <div class="drawer-body" id="history-list">
-        <p class="empty-state">Belum ada riwayat pick.</p>
+      <div class="drawer-scroll" id="history-list">
+        <p class="empty-state">Belum ada riwayat.</p>
       </div>
       <div class="drawer-footer" id="history-footer" hidden>
-        <button class="btn-danger-sm" id="btn-clear-history">Hapus Semua</button>
+        <button class="btn-clear" id="btn-clear-history">Hapus Riwayat</button>
       </div>
     </div>
   </div>
 
-  <!-- ===== TOAST ===== -->
-  <div class="toast-container" id="toast-container" aria-live="polite"></div>
+  <!-- ===== TOAST CONTAINER ===== -->
+  <div class="toast-wrapper" id="toast-container" aria-live="polite"></div>
 
   <!-- ===== LOADING OVERLAY ===== -->
-  <div class="loading-overlay" id="loading-overlay" hidden aria-busy="true" aria-label="Sedang mencari tempat...">
-    <div class="loading-box">
-      <div class="dice-roll">🎲</div>
-      <p>Lagi nyari tempat terbaik<span class="dots"></span></p>
-      <small style="color: #6b7280; font-size: 0.8rem;">Mengambil data dari OpenStreetMap...</small>
+  <div class="loading-scrim" id="loading-overlay" hidden aria-busy="true" aria-label="Sedang memilihkan tempat...">
+    <div class="loading-card spotlight-card">
+      <div class="loading-dice">🎲</div>
+      <h3 class="loading-title">Mengacak Tempat Pilihan<span class="dots"></span></h3>
+      <p class="loading-desc">Mengumpulkan data lokasi dari OpenStreetMap</p>
     </div>
   </div>
 
-  <!-- Scripts -->
+  <!-- Leaflet Script -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+  <!-- Application Entry -->
   <script type="module" src="assets/js/app.js"></script>
 </body>
 </html>

@@ -1,6 +1,6 @@
 /**
- * app.js — Main orchestrator for Terserah
- * Connects Leaflet OpenStreetMap, Filters, OpenStreetMap API, UI
+ * app.js : Main application controller for Terserah
+ * Implements anti-slop principles and React Bits interactions
  */
 
 import { fetchPlaces, reverseGeocode, searchLocation, CATEGORY_LABELS } from './api.js';
@@ -15,12 +15,15 @@ import {
   updatePoolIndicator, showResultCard, hideResultCard, initResultCardEvents,
   initWishlistDrawer, initHistoryDrawer, refreshWishlistBadge,
 } from './ui.js';
+import { initClickSpark } from './components/click-spark.js';
+import { initSpotlightCards } from './components/spotlight-card.js';
+import { initMagnet } from './components/magnet.js';
 
 /* ============================================================
-   Application State
+   State
    ============================================================ */
 const state = {
-  lat: -6.2088, // Jakarta center default
+  lat: -6.2088,
   lon: 106.8456,
   radiusKm: 5,
   categories: ['hangout'],
@@ -54,7 +57,7 @@ const btnSurprise      = $('btn-surprise');
 const btnReroll        = $('btn-reroll');
 
 /* ============================================================
-   Location Management
+   Location Handling
    ============================================================ */
 async function setLocation(lat, lon, knownName = null) {
   state.lat = lat;
@@ -64,23 +67,21 @@ async function setLocation(lat, lon, knownName = null) {
   if (knownName) {
     inputLocation.value = knownName.split(',')[0].trim();
   } else {
-    inputLocation.value = 'Mencari nama area...';
+    inputLocation.value = 'Mendeteksi area...';
     const name = await reverseGeocode(lat, lon);
     inputLocation.value = name || `${lat.toFixed(4)}, ${lon.toFixed(4)}`;
   }
 }
 
-// Map click handler (user clicks anywhere on the map to set location)
 async function handleMapClick(lat, lon) {
   await setLocation(lat, lon);
-  showToast('Lokasi dipindahkan ke titik yang diklik!', 'success');
+  showToast('Titik acuan dipindahkan ke lokasi peta', 'success');
 }
 
-// Detect GPS location
 async function detectLocation() {
   return new Promise((resolve, reject) => {
     if (!navigator.geolocation) {
-      reject(new Error('Browser tidak mendukung GPS'));
+      reject(new Error('Perangkat tidak mendukung geolokasi'));
       return;
     }
     navigator.geolocation.getCurrentPosition(
@@ -93,23 +94,22 @@ async function detectLocation() {
 
 btnDetectLoc.addEventListener('click', async () => {
   btnDetectLoc.disabled = true;
-  showToast('Mencari sinyal GPS...');
+  showToast('Mencari posisi perangkat...');
   try {
     const { lat, lon } = await detectLocation();
     await setLocation(lat, lon);
-    showToast('Lokasimu berhasil dideteksi!', 'success');
-  } catch (err) {
-    showToast('GPS tidak dapat diakses. Kamu bisa ketik kota atau klik di peta.', 'error', 4000);
+    showToast('Posisi berhasil ditemukan', 'success');
+  } catch {
+    showToast('Izin GPS belum aktif. Kamu dapat mengetik nama kota atau klik peta.', '', 4000);
   } finally {
     btnDetectLoc.disabled = false;
   }
 });
 
-// Search city/area by typing
 async function handleLocationSearch() {
   const query = inputLocation.value.trim();
   if (!query) {
-    showToast('Ketik nama kota atau area terlebih dahulu.');
+    showToast('Ketik nama area atau kota terlebih dahulu.');
     return;
   }
 
@@ -118,12 +118,12 @@ async function handleLocationSearch() {
     const result = await searchLocation(query);
     if (result) {
       await setLocation(result.lat, result.lon, result.displayName);
-      showToast(`Lokasi disetel ke: ${result.displayName.split(',')[0]}`, 'success');
+      showToast(`Lokasi: ${result.displayName.split(',')[0]}`, 'success');
     } else {
-      showToast('Lokasi tidak ditemukan. Coba ketik nama lain atau klik di peta.', 'error');
+      showToast('Area tidak ditemukan. Coba ketik nama lain atau klik pada peta.', 'error');
     }
   } catch {
-    showToast('Gagal mencari lokasi. Periksa koneksi.', 'error');
+    showToast('Gagal mencari area. Periksa jaringan.', 'error');
   } finally {
     hideLoading();
   }
@@ -140,14 +140,12 @@ inputLocation.addEventListener('keydown', (e) => {
 /* ============================================================
    Filters
    ============================================================ */
-// Radius
 sliderRadius.addEventListener('input', () => {
   state.radiusKm = parseInt(sliderRadius.value, 10);
   radiusValue.textContent = state.radiusKm;
   updateRadius(state.radiusKm);
 });
 
-// Categories (multi-select)
 categoryChips.addEventListener('click', (e) => {
   const chip = e.target.closest('.chip');
   if (!chip) return;
@@ -155,7 +153,6 @@ categoryChips.addEventListener('click', (e) => {
   chip.classList.toggle('active');
   const activeChips = [...categoryChips.querySelectorAll('.chip.active')];
 
-  // Keep at least one category selected
   if (activeChips.length === 0) {
     chip.classList.add('active');
     activeChips.push(chip);
@@ -163,12 +160,10 @@ categoryChips.addEventListener('click', (e) => {
 
   state.categories = activeChips.map(c => c.dataset.value);
 
-  // Show food query input if food or hangout selected
   const showFood = state.categories.some(c => ['food', 'hangout'].includes(c));
   if (groupFood) groupFood.hidden = !showFood;
 });
 
-// Budget (single-select)
 budgetChips.addEventListener('click', (e) => {
   const chip = e.target.closest('.chip');
   if (!chip) return;
@@ -178,7 +173,6 @@ budgetChips.addEventListener('click', (e) => {
   state.budget = chip.dataset.value;
 });
 
-// Time chips (single-select)
 timeChips.addEventListener('click', (e) => {
   const chip = e.target.closest('.chip');
   if (!chip) return;
@@ -188,37 +182,34 @@ timeChips.addEventListener('click', (e) => {
   state.timeOfDay = chip.dataset.value;
 });
 
-// Set to current time slot
 btnTimeNow.addEventListener('click', () => {
   const hour = new Date().getHours();
   let slot = 'any';
-  let slotName = 'Kapan Saja';
+  let slotLabel = 'Kapan Saja';
 
-  if (hour >= 5 && hour < 11) { slot = 'morning'; slotName = 'Pagi'; }
-  else if (hour >= 11 && hour < 14) { slot = 'noon'; slotName = 'Siang'; }
-  else if (hour >= 14 && hour < 18) { slot = 'afternoon'; slotName = 'Sore'; }
-  else if (hour >= 18) { slot = 'evening'; slotName = 'Malam'; }
+  if (hour >= 5 && hour < 11) { slot = 'morning'; slotLabel = 'Pagi'; }
+  else if (hour >= 11 && hour < 14) { slot = 'noon'; slotLabel = 'Siang'; }
+  else if (hour >= 14 && hour < 18) { slot = 'afternoon'; slotLabel = 'Sore'; }
+  else if (hour >= 18) { slot = 'evening'; slotLabel = 'Malam'; }
 
   timeChips.querySelectorAll('.chip').forEach(c => {
     c.classList.toggle('active', c.dataset.value === slot);
   });
   state.timeOfDay = slot;
-  showToast(`Waktu disetel ke: ${slotName}`, 'success');
+  showToast(`Filter disetel ke: ${slotLabel}`, 'success');
 });
 
-// Rating slider
 sliderRating.addEventListener('input', () => {
   state.minRating = parseFloat(sliderRating.value);
   ratingValue.textContent = `${state.minRating.toFixed(1)} ⭐`;
 });
 
-// Food query
 inputFoodQuery.addEventListener('input', () => {
   state.foodQuery = inputFoodQuery.value;
 });
 
 /* ============================================================
-   Pick Execution
+   Execution
    ============================================================ */
 async function fetchAndFilterPool() {
   showLoading();
@@ -246,12 +237,11 @@ async function fetchAndFilterPool() {
     if (state.pool.length === 0) {
       hideLoading();
       clearPoolPins();
-      showToast('😕 Tidak ada tempat yang cocok. Coba perbesar radius atau ubah filter.', 'error', 4500);
+      showToast('Belum ada tempat yang cocok. Coba perbesar radius atau longgarkan filter.', '', 4500);
       btnReroll.hidden = true;
       return false;
     }
 
-    // Render candidates on the map
     renderPoolPins(state.pool, (selectedPlace) => {
       displayPlace(selectedPlace);
     }, CATEGORY_LABELS);
@@ -259,8 +249,8 @@ async function fetchAndFilterPool() {
     return true;
   } catch (err) {
     hideLoading();
-    console.error('Fetch places error:', err);
-    showToast('Terjadi gangguan saat mengambil data tempat.', 'error');
+    console.error('Fetch error:', err);
+    showToast('Terjadi kendala saat mengambil data.', 'error');
     return false;
   }
 }
@@ -271,7 +261,7 @@ function displayPlace(place) {
   showResultOnMap(place);
   showResultCard(place);
   btnReroll.hidden = false;
-  btnSurprise.querySelector('span').textContent = 'Pilihkan Lagi!';
+  btnSurprise.querySelector('.btn-label').textContent = 'Pilihkan Lagi';
 }
 
 function pickRandomAndShow() {
@@ -284,7 +274,6 @@ function pickRandomAndShow() {
   displayPlace(place);
 }
 
-// CTA Click: Surprise Me / Main Pick
 btnSurprise.addEventListener('click', async () => {
   btnSurprise.disabled = true;
   const ok = await fetchAndFilterPool();
@@ -294,7 +283,6 @@ btnSurprise.addEventListener('click', async () => {
   btnSurprise.disabled = false;
 });
 
-// CTA Click: Re-roll from existing pool
 btnReroll.addEventListener('click', () => {
   if (state.pool.length === 0) return;
   hideResultCard();
@@ -305,13 +293,18 @@ btnReroll.addEventListener('click', () => {
 });
 
 /* ============================================================
-   Boot & Initialization
+   Bootstrapping
    ============================================================ */
 async function boot() {
-  // 1. Initialize map
+  // Initialize React Bits components
+  initClickSpark({ sparkColor: '#f97316', sparkSize: 10, sparkCount: 8 });
+  initSpotlightCards('.spotlight-card');
+  initMagnet('.magnet-btn', 0.22);
+
+  // Initialize Map
   initMap(handleMapClick);
 
-  // 2. Initialize UI components
+  // Initialize UI events & drawers
   initResultCardEvents();
   initWishlistDrawer((selectedPlace) => {
     displayPlace(selectedPlace);
@@ -321,20 +314,18 @@ async function boot() {
   });
   refreshWishlistBadge();
 
-  // 3. Set default location immediately (Jakarta) so map renders instantly
+  // Instant default center
   await setLocation(state.lat, state.lon, 'Jakarta Pusat');
   refreshMapSize();
 
-  // 4. Silently try geolocation in background without blocking
+  // Background non-blocking GPS attempt
   if (navigator.geolocation) {
     navigator.geolocation.getCurrentPosition(
       async (pos) => {
         await setLocation(pos.coords.latitude, pos.coords.longitude);
-        showToast('📍 Lokasi GPS otomatis terpasang!', 'success', 2500);
+        showToast('Titik acuan otomatis ke lokasi saat ini', 'success', 2500);
       },
-      () => {
-        // Ignored or denied, Jakarta remains active
-      },
+      () => {},
       { timeout: 5000, maximumAge: 60000 }
     );
   }

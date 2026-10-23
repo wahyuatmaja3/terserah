@@ -1,5 +1,5 @@
 /**
- * filter.js — Filter and scoring logic for Terserah
+ * filter.js : Filter and scoring logic for Terserah
  */
 
 const TIME_SLOTS = {
@@ -92,8 +92,8 @@ function matchesFoodQuery(place, query) {
 
 /**
  * Filter and score pool of candidate places
- * @param {object[]} places  — raw places from API
- * @param {object}   filters — user filter values
+ * @param {object[]} places  (raw places from API)
+ * @param {object}   filters (user filter values)
  * @param {number}   userLat
  * @param {number}   userLon
  * @returns {object[]}

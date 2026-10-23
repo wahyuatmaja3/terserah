@@ -1,5 +1,5 @@
 /**
- * storage.js — LocalStorage manager for wishlist & history
+ * storage.js : LocalStorage manager for wishlist & history
  */
 
 const KEYS = {

@@ -1,5 +1,6 @@
 /**
- * ui.js — UI helpers: Toast, Drawers, Result Card, Loading for Terserah
+ * ui.js : UI presentation and micro-interactions for Terserah
+ * Built with anti-slop guidelines and React Bits design patterns
  */
 
 import { CATEGORY_LABELS, BUDGET_LABELS } from './api.js';
@@ -7,8 +8,9 @@ import {
   getWishlist, isInWishlist, addToWishlist, removeFromWishlist, clearWishlist,
   getHistory, addToHistory, clearHistory,
 } from './storage.js';
+import { animateDecryptedText } from './components/decrypted-text.js';
 
-/* ========== Toast ========== */
+/* ========== Toast notification ========== */
 export function showToast(message, type = '', duration = 3000) {
   const container = document.getElementById('toast-container');
   if (!container) return;
@@ -19,12 +21,12 @@ export function showToast(message, type = '', duration = 3000) {
   container.appendChild(toast);
 
   setTimeout(() => {
-    toast.style.animation = 'toastOut 0.3s ease forwards';
+    toast.style.animation = 'toastOut 0.25s ease forwards';
     toast.addEventListener('animationend', () => toast.remove());
   }, duration);
 }
 
-/* ========== Loading ========== */
+/* ========== Loading overlay ========== */
 export function showLoading() {
   const el = document.getElementById('loading-overlay');
   if (el) el.hidden = false;
@@ -35,7 +37,7 @@ export function hideLoading() {
   if (el) el.hidden = true;
 }
 
-/* ========== Pool Indicator ========== */
+/* ========== Pool Indicator on Map ========== */
 export function updatePoolIndicator(count) {
   const el = document.getElementById('pool-indicator');
   const countEl = document.getElementById('pool-count');
@@ -49,13 +51,8 @@ export function updatePoolIndicator(count) {
   }
 }
 
-/* ========== Result Card ========== */
+/* ========== Result Card (SpotlightCard + DecryptedText) ========== */
 let _currentPlace = null;
-let _onSelectPlaceCallback = null;
-
-export function setSelectPlaceCallback(cb) {
-  _onSelectPlaceCallback = cb;
-}
 
 export function showResultCard(place) {
   _currentPlace = place;
@@ -64,24 +61,20 @@ export function showResultCard(place) {
   if (!overlay) return;
 
   const catInfo = CATEGORY_LABELS[place.category] || { emoji: '📍', label: place.category };
-  const budgetInfo = BUDGET_LABELS[place.budgetTier] || { label: 'Sedang', icon: '💵' };
-
-  // Photo banner setup
-  const photo = document.getElementById('result-photo');
-  if (photo) {
-    photo.src = 'assets/images/placeholder.svg';
-    photo.alt = place.name;
-  }
+  const budgetInfo = BUDGET_LABELS[place.budgetTier] || { label: 'Sedang', icon: '💵', range: 'Rp 30rb - 100rb' };
 
   const badgeEl = document.getElementById('result-category-badge');
   if (badgeEl) {
     badgeEl.textContent = `${catInfo.emoji} ${catInfo.label}`;
   }
 
+  // Animated decrypted text for the place name
   const nameEl = document.getElementById('result-name');
-  if (nameEl) nameEl.textContent = place.name;
+  if (nameEl) {
+    animateDecryptedText(nameEl, place.name);
+  }
 
-  // Rating & Distance & Open status
+  // Rating, distance, open status
   const ratingEl = document.getElementById('result-rating');
   if (ratingEl) {
     ratingEl.textContent = `⭐ ${place.rating ? place.rating.toFixed(1) : '4.0'}`;
@@ -89,26 +82,26 @@ export function showResultCard(place) {
 
   const distEl = document.getElementById('result-distance');
   if (distEl) {
-    distEl.textContent = `📍 ${place.distance != null ? place.distance.toFixed(1) + ' km' : '—'}`;
+    distEl.textContent = `📍 ${place.distance != null ? place.distance.toFixed(1) + ' km' : 'Sekitar lokasi'}`;
   }
 
   const openEl = document.getElementById('result-open-status');
   if (openEl) {
     if (place.openStatus === 'open') {
-      openEl.textContent = '✅ Buka Sekarang';
+      openEl.textContent = 'Buka Sekarang';
       openEl.className = 'meta-item open-status open';
     } else if (place.openStatus === 'closed') {
-      openEl.textContent = '❌ Sedang Tutup';
+      openEl.textContent = 'Sedang Tutup';
       openEl.className = 'meta-item open-status closed';
     } else {
-      openEl.textContent = '🕒 Jam fleksibel';
+      openEl.textContent = 'Jam Fleksibel';
       openEl.className = 'meta-item open-status unknown';
     }
   }
 
   // Address
   const addrEl = document.getElementById('result-address');
-  if (addrEl) addrEl.textContent = place.address || 'Alamat di sekitar lokasi';
+  if (addrEl) addrEl.textContent = place.address || 'Alamat di sekitar titik koordinat';
 
   // Tags & Budget pill
   const tagsEl = document.getElementById('result-tags');
@@ -118,11 +111,11 @@ export function showResultCard(place) {
     // Budget tag
     const bTag = document.createElement('span');
     bTag.className = 'result-tag budget-tag';
-    bTag.textContent = `${budgetInfo.icon} ${budgetInfo.label}`;
+    bTag.textContent = `${budgetInfo.icon} ${budgetInfo.label} (${budgetInfo.range})`;
     tagsEl.appendChild(bTag);
 
     // Other tags
-    (place.tags || []).slice(0, 5).forEach(tag => {
+    (place.tags || []).slice(0, 4).forEach(tag => {
       const span = document.createElement('span');
       span.className = 'result-tag';
       span.textContent = tag;
@@ -154,7 +147,7 @@ function updateSaveBtn(placeId) {
   const btn = document.getElementById('btn-save-wishlist');
   if (!btn) return;
   const saved = isInWishlist(placeId);
-  btn.textContent = saved ? '❤️ Tersimpan' : '🤍 Simpan';
+  btn.textContent = saved ? 'Tersimpan ❤️' : 'Simpan';
   btn.className = `btn-action btn-save${saved ? ' saved' : ''}`;
 }
 
@@ -170,10 +163,10 @@ export function initResultCardEvents() {
       if (!_currentPlace) return;
       if (isInWishlist(_currentPlace.id)) {
         removeFromWishlist(_currentPlace.id);
-        showToast('Dihapus dari wishlist');
+        showToast('Dihapus dari koleksi');
       } else {
         addToWishlist(_currentPlace);
-        showToast('Disimpan ke wishlist ❤️', 'success');
+        showToast('Disimpan ke koleksi pilihan', 'success');
       }
       updateSaveBtn(_currentPlace.id);
       refreshWishlistBadge();
@@ -185,20 +178,20 @@ export function initResultCardEvents() {
     shareBtn.addEventListener('click', async () => {
       if (!_currentPlace) return;
       const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${_currentPlace.lat},${_currentPlace.lon}`;
-      const text = `Hai! Yuk ke "${_currentPlace.name}"!\n📍 ${_currentPlace.address}\n🗺️ ${mapsUrl}\n\nDipilihkan acak pakai Terserah 🎲`;
+      const text = `Rekomendasi dari Terserah: "${_currentPlace.name}"\nLokasi: ${_currentPlace.address}\nPetunjuk jalan: ${mapsUrl}`;
 
       if (navigator.share) {
         try {
           await navigator.share({ title: _currentPlace.name, text });
         } catch {
-          // User cancelled
+          // User dismiss
         }
       } else {
         try {
           await navigator.clipboard.writeText(text);
-          showToast('Rekomendasi disalin ke clipboard!', 'success');
+          showToast('Tautan tersalin ke clipboard', 'success');
         } catch {
-          showToast('Gagal menyalin link.', 'error');
+          showToast('Gagal menyalin tautan.', 'error');
         }
       }
     });
@@ -217,14 +210,14 @@ export function refreshWishlistBadge() {
 function renderMiniCard(place, onDelete, onSelect) {
   const catInfo = CATEGORY_LABELS[place.category] || { emoji: '📍' };
   const card = document.createElement('div');
-  card.className = 'place-mini-card';
+  card.className = 'place-mini-card spotlight-card';
   card.innerHTML = `
     <span class="place-mini-emoji">${catInfo.emoji}</span>
     <div class="place-mini-info">
       <div class="place-mini-name">${escapeHtml(place.name)}</div>
       <div class="place-mini-sub">${place.distance ? place.distance.toFixed(1) + ' km · ' : ''}${escapeHtml(place.address || '')}</div>
     </div>
-    ${onDelete ? '<button class="place-mini-del" title="Hapus" aria-label="Hapus dari daftar">🗑️</button>' : ''}
+    ${onDelete ? '<button class="place-mini-del" title="Hapus" aria-label="Hapus dari daftar">✕</button>' : ''}
   `;
 
   card.addEventListener('click', () => {
@@ -254,7 +247,7 @@ export function initWishlistDrawer(onSelectPlace) {
     const items = getWishlist();
     list.innerHTML = '';
     if (items.length === 0) {
-      list.innerHTML = '<p class="empty-state">Belum ada tempat tersimpan.<br><small>Klik tombol "Simpan" pada hasil pick untuk menyimpannya.</small></p>';
+      list.innerHTML = '<p class="empty-state">Koleksi tersimpan masih kosong.<br><small>Gunakan tombol "Simpan" saat menemukan tempat menarik.</small></p>';
       if (footer) footer.hidden = true;
     } else {
       items.forEach(place => {
@@ -290,7 +283,7 @@ export function initWishlistDrawer(onSelectPlace) {
       clearWishlist();
       refreshWishlistBadge();
       openDrawer();
-      showToast('Wishlist dikosongkan');
+      showToast('Koleksi dikosongkan');
     });
   }
 }
@@ -305,7 +298,7 @@ export function initHistoryDrawer(onSelectPlace) {
     const items = getHistory();
     list.innerHTML = '';
     if (items.length === 0) {
-      list.innerHTML = '<p class="empty-state">Belum ada riwayat pick.<br><small>Tempat yang kamu pilih akan tercatat di sini.</small></p>';
+      list.innerHTML = '<p class="empty-state">Riwayat masih kosong.<br><small>Tempat yang dipilih otomatis tersimpan di sini.</small></p>';
       if (footer) footer.hidden = true;
     } else {
       items.forEach(place => {
@@ -336,7 +329,7 @@ export function initHistoryDrawer(onSelectPlace) {
     clearBtn.addEventListener('click', () => {
       clearHistory();
       openDrawer();
-      showToast('Riwayat dihapus');
+      showToast('Riwayat dibersihkan');
     });
   }
 }
