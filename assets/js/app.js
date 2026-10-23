@@ -1,14 +1,17 @@
 /**
  * app.js : Main application controller for Terserah
- * Implements anti-slop principles and React Bits interactions
+ * Exclusively powered by Google Maps JavaScript API & Google Places
  */
 
-import { fetchPlaces, reverseGeocode, searchLocation, CATEGORY_LABELS } from './api.js';
+import {
+  loadGoogleMapsSDK, initServices, fetchPlacesViaGoogle,
+  geocodeAddress, reverseGeocodeLatLng, CATEGORY_LABELS
+} from './api.js';
 import { filterPlaces, pickRandom } from './filter.js';
 import { addToHistory } from './storage.js';
 import {
-  initMap, setUserLocation, updateRadius, showResultOnMap, clearResultMarker,
-  renderPoolPins, clearPoolPins, refreshMapSize,
+  initGoogleMap, setUserLocation, updateRadius, showResultOnMap,
+  clearResultMarker, renderPoolPins, clearPoolPins, getGoogleMapInstance
 } from './map.js';
 import {
   showToast, showLoading, hideLoading,
@@ -22,17 +25,20 @@ import { initMagnet } from './components/magnet.js';
 /* ============================================================
    State
    ============================================================ */
+const STORAGE_KEY_GMAPS = 'terserah_gmaps_key';
+
 const state = {
+  apiKey: localStorage.getItem(STORAGE_KEY_GMAPS) || '',
   lat: -6.2088,
   lon: 106.8456,
   radiusKm: 5,
   categories: ['hangout'],
   budget: 'any',
-  timeOfDay: 'any',
   minRating: 3.0,
   foodQuery: '',
   pool: [],
   lastPickedId: null,
+  mapReady: false,
 };
 
 /* ============================================================
@@ -47,28 +53,85 @@ const sliderRadius     = $('slider-radius');
 const radiusValue      = $('radius-value');
 const categoryChips    = $('category-chips');
 const budgetChips      = $('budget-chips');
-const timeChips        = $('time-chips');
-const btnTimeNow       = $('btn-time-now');
 const sliderRating     = $('slider-rating');
 const ratingValue      = $('rating-value');
-const groupFood        = $('group-food');
 const inputFoodQuery   = $('input-food-query');
 const btnSurprise      = $('btn-surprise');
 const btnReroll        = $('btn-reroll');
 
+// API Key Modal Elements
+const btnApiKeyHeader  = $('btn-api-key');
+const apiKeyModal      = $('api-key-modal');
+const apiKeyBackdrop   = $('api-modal-backdrop');
+const apiKeyClose      = $('api-modal-close');
+const inputApiKey      = $('input-api-key');
+const btnSaveApiKey    = $('btn-save-api-key');
+const apiKeyBanner     = $('api-key-banner');
+const btnOpenApiModal  = $('btn-open-api-modal');
+
 /* ============================================================
-   Location Handling
+   API Key Modal Management
+   ============================================================ */
+function openApiKeyModal() {
+  inputApiKey.value = state.apiKey || '';
+  apiKeyModal.hidden = false;
+  setTimeout(() => inputApiKey.focus(), 100);
+}
+
+function closeApiKeyModal() {
+  apiKeyModal.hidden = true;
+}
+
+btnApiKeyHeader.addEventListener('click', openApiKeyModal);
+apiKeyClose.addEventListener('click', closeApiKeyModal);
+apiKeyBackdrop.addEventListener('click', closeApiKeyModal);
+if (btnOpenApiModal) btnOpenApiModal.addEventListener('click', openApiKeyModal);
+
+btnSaveApiKey.addEventListener('click', async () => {
+  const enteredKey = inputApiKey.value.trim();
+  if (!enteredKey) {
+    showToast('Masukkan API key yang valid.', 'error');
+    return;
+  }
+
+  showLoading();
+  try {
+    await loadGoogleMapsSDK(enteredKey);
+    state.apiKey = enteredKey;
+    localStorage.setItem(STORAGE_KEY_GMAPS, enteredKey);
+    closeApiKeyModal();
+    if (apiKeyBanner) apiKeyBanner.hidden = true;
+
+    // Initialize Map and Services
+    const gMap = initGoogleMap(state.lat, state.lon, handleMapClick);
+    initServices(gMap);
+    state.mapReady = true;
+
+    await setLocation(state.lat, state.lon, 'Jakarta Pusat');
+    showToast('Google Maps aktif dan siap digunakan!', 'success');
+  } catch (err) {
+    showToast(err.message || 'Gagal memvalidasi Google Maps API key.', 'error');
+  } finally {
+    hideLoading();
+  }
+});
+
+/* ============================================================
+   Location Handling via Google Geocoder
    ============================================================ */
 async function setLocation(lat, lon, knownName = null) {
   state.lat = lat;
   state.lon = lon;
-  setUserLocation(lat, lon, state.radiusKm);
+
+  if (state.mapReady) {
+    setUserLocation(lat, lon, state.radiusKm);
+  }
 
   if (knownName) {
     inputLocation.value = knownName.split(',')[0].trim();
   } else {
-    inputLocation.value = 'Mendeteksi area...';
-    const name = await reverseGeocode(lat, lon);
+    inputLocation.value = 'Mendeteksi alamat...';
+    const name = await reverseGeocodeLatLng(lat, lon);
     inputLocation.value = name || `${lat.toFixed(4)}, ${lon.toFixed(4)}`;
   }
 }
@@ -115,15 +178,15 @@ async function handleLocationSearch() {
 
   showLoading();
   try {
-    const result = await searchLocation(query);
+    const result = await geocodeAddress(query);
     if (result) {
       await setLocation(result.lat, result.lon, result.displayName);
       showToast(`Lokasi: ${result.displayName.split(',')[0]}`, 'success');
     } else {
-      showToast('Area tidak ditemukan. Coba ketik nama lain atau klik pada peta.', 'error');
+      showToast('Area tidak ditemukan di Google Maps. Coba ketik nama lain.', 'error');
     }
   } catch {
-    showToast('Gagal mencari area. Periksa jaringan.', 'error');
+    showToast('Gagal mencari area. Periksa jaringan atau API key.', 'error');
   } finally {
     hideLoading();
   }
@@ -143,15 +206,17 @@ inputLocation.addEventListener('keydown', (e) => {
 sliderRadius.addEventListener('input', () => {
   state.radiusKm = parseInt(sliderRadius.value, 10);
   radiusValue.textContent = state.radiusKm;
-  updateRadius(state.radiusKm);
+  if (state.mapReady) {
+    updateRadius(state.radiusKm);
+  }
 });
 
 categoryChips.addEventListener('click', (e) => {
-  const chip = e.target.closest('.chip');
+  const chip = e.target.closest('.filter-chip');
   if (!chip) return;
 
   chip.classList.toggle('active');
-  const activeChips = [...categoryChips.querySelectorAll('.chip.active')];
+  const activeChips = [...categoryChips.querySelectorAll('.filter-chip.active')];
 
   if (activeChips.length === 0) {
     chip.classList.add('active');
@@ -159,44 +224,15 @@ categoryChips.addEventListener('click', (e) => {
   }
 
   state.categories = activeChips.map(c => c.dataset.value);
-
-  const showFood = state.categories.some(c => ['food', 'hangout'].includes(c));
-  if (groupFood) groupFood.hidden = !showFood;
 });
 
 budgetChips.addEventListener('click', (e) => {
-  const chip = e.target.closest('.chip');
+  const chip = e.target.closest('.filter-chip');
   if (!chip) return;
 
-  budgetChips.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+  budgetChips.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
   chip.classList.add('active');
   state.budget = chip.dataset.value;
-});
-
-timeChips.addEventListener('click', (e) => {
-  const chip = e.target.closest('.chip');
-  if (!chip) return;
-
-  timeChips.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
-  chip.classList.add('active');
-  state.timeOfDay = chip.dataset.value;
-});
-
-btnTimeNow.addEventListener('click', () => {
-  const hour = new Date().getHours();
-  let slot = 'any';
-  let slotLabel = 'Kapan Saja';
-
-  if (hour >= 5 && hour < 11) { slot = 'morning'; slotLabel = 'Pagi'; }
-  else if (hour >= 11 && hour < 14) { slot = 'noon'; slotLabel = 'Siang'; }
-  else if (hour >= 14 && hour < 18) { slot = 'afternoon'; slotLabel = 'Sore'; }
-  else if (hour >= 18) { slot = 'evening'; slotLabel = 'Malam'; }
-
-  timeChips.querySelectorAll('.chip').forEach(c => {
-    c.classList.toggle('active', c.dataset.value === slot);
-  });
-  state.timeOfDay = slot;
-  showToast(`Filter disetel ke: ${slotLabel}`, 'success');
 });
 
 sliderRating.addEventListener('input', () => {
@@ -209,15 +245,21 @@ inputFoodQuery.addEventListener('input', () => {
 });
 
 /* ============================================================
-   Execution
+   Execution via Google Places
    ============================================================ */
 async function fetchAndFilterPool() {
+  if (!state.mapReady) {
+    openApiKeyModal();
+    showToast('Pasang Google Maps API key terlebih dahulu.', 'error');
+    return false;
+  }
+
   showLoading();
   clearResultMarker();
   hideResultCard();
 
   try {
-    const rawPlaces = await fetchPlaces({
+    const rawPlaces = await fetchPlacesViaGoogle({
       categories: state.categories,
       lat: state.lat,
       lon: state.lon,
@@ -226,10 +268,8 @@ async function fetchAndFilterPool() {
     });
 
     state.pool = filterPlaces(rawPlaces, {
-      timeOfDay: state.timeOfDay,
       minRating: state.minRating,
       budget: state.budget,
-      foodQuery: state.foodQuery,
       radiusKm: state.radiusKm,
     }, state.lat, state.lon);
 
@@ -238,20 +278,20 @@ async function fetchAndFilterPool() {
     if (state.pool.length === 0) {
       hideLoading();
       clearPoolPins();
-      showToast('Belum ada tempat yang cocok. Coba perbesar radius atau longgarkan filter.', '', 4500);
+      showToast('Belum ada tempat yang cocok di Google Maps. Coba perbesar radius atau ubah filter.', '', 4500);
       btnReroll.hidden = true;
       return false;
     }
 
     renderPoolPins(state.pool, (selectedPlace) => {
       displayPlace(selectedPlace);
-    }, CATEGORY_LABELS);
+    });
 
     return true;
   } catch (err) {
     hideLoading();
-    console.error('Fetch error:', err);
-    showToast('Terjadi kendala saat mengambil data.', 'error');
+    console.error('Google Places error:', err);
+    showToast('Terjadi kendala saat mengakses Google Places API.', 'error');
     return false;
   }
 }
@@ -290,7 +330,7 @@ btnReroll.addEventListener('click', () => {
   showLoading();
   setTimeout(() => {
     pickRandomAndShow();
-  }, 400);
+  }, 350);
 });
 
 /* ============================================================
@@ -302,10 +342,7 @@ async function boot() {
   initSpotlightCards('.spotlight-card');
   initMagnet('.magnet-btn', 0.22);
 
-  // Initialize Map
-  initMap(handleMapClick);
-
-  // Initialize UI events & drawers
+  // Initialize UI drawers
   initResultCardEvents();
   initWishlistDrawer((selectedPlace) => {
     displayPlace(selectedPlace);
@@ -315,16 +352,33 @@ async function boot() {
   });
   refreshWishlistBadge();
 
-  // Instant default center
-  await setLocation(state.lat, state.lon, 'Jakarta Pusat');
-  refreshMapSize();
+  // Check Google Maps API Key
+  if (state.apiKey) {
+    try {
+      showLoading();
+      await loadGoogleMapsSDK(state.apiKey);
+      const gMap = initGoogleMap(state.lat, state.lon, handleMapClick);
+      initServices(gMap);
+      state.mapReady = true;
+      if (apiKeyBanner) apiKeyBanner.hidden = true;
+      await setLocation(state.lat, state.lon, 'Jakarta Pusat');
+    } catch (err) {
+      console.warn('Gagal memuat Google Maps SDK dengan kunci tersimpan:', err);
+      if (apiKeyBanner) apiKeyBanner.hidden = false;
+    } finally {
+      hideLoading();
+    }
+  } else {
+    // Show banner prompting user to enter Google Maps API key
+    if (apiKeyBanner) apiKeyBanner.hidden = false;
+    inputLocation.value = 'Jakarta Pusat (Belum aktif)';
+  }
 
   // Background non-blocking GPS attempt
   if (navigator.geolocation) {
     navigator.geolocation.getCurrentPosition(
       async (pos) => {
         await setLocation(pos.coords.latitude, pos.coords.longitude);
-        showToast('Titik acuan otomatis ke lokasi saat ini', 'success', 2500);
       },
       () => {},
       { timeout: 5000, maximumAge: 60000 }

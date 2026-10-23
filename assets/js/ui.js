@@ -10,7 +10,6 @@ import {
 } from './storage.js';
 import { animateDecryptedText } from './components/decrypted-text.js';
 
-/* ========== Toast notification ========== */
 export function showToast(message, type = '', duration = 3000) {
   const container = document.getElementById('toast-container');
   if (!container) return;
@@ -26,7 +25,6 @@ export function showToast(message, type = '', duration = 3000) {
   }, duration);
 }
 
-/* ========== Loading overlay ========== */
 export function showLoading() {
   const el = document.getElementById('loading-overlay');
   if (el) el.hidden = false;
@@ -37,7 +35,6 @@ export function hideLoading() {
   if (el) el.hidden = true;
 }
 
-/* ========== Pool Indicator on Map ========== */
 export function updatePoolIndicator(count) {
   const el = document.getElementById('pool-indicator');
   const countEl = document.getElementById('pool-count');
@@ -51,7 +48,6 @@ export function updatePoolIndicator(count) {
   }
 }
 
-/* ========== Result Card (SpotlightCard + DecryptedText) ========== */
 let _currentPlace = null;
 
 export function showResultCard(place) {
@@ -63,21 +59,34 @@ export function showResultCard(place) {
   const catInfo = CATEGORY_LABELS[place.category] || { emoji: '📍', label: place.category };
   const budgetInfo = BUDGET_LABELS[place.budgetTier] || { label: 'Sedang', icon: '💵', range: 'Rp 30rb - 100rb' };
 
+  // Photo header or fallback pattern
+  const visualEl = document.querySelector('.card-visual');
+  if (visualEl) {
+    if (place.photoUrl) {
+      visualEl.style.backgroundImage = `linear-gradient(to top, rgba(9, 10, 15, 0.95), rgba(9, 10, 15, 0.2)), url('${place.photoUrl}')`;
+      visualEl.style.backgroundSize = 'cover';
+      visualEl.style.backgroundPosition = 'center';
+    } else {
+      visualEl.style.backgroundImage = 'linear-gradient(135deg, #181b26 0%, #0d0f14 100%)';
+    }
+  }
+
   const badgeEl = document.getElementById('result-category-badge');
   if (badgeEl) {
     badgeEl.textContent = `${catInfo.emoji} ${catInfo.label}`;
   }
 
-  // Animated decrypted text for the place name
+  // React Bits DecryptedText animation on title
   const nameEl = document.getElementById('result-name');
   if (nameEl) {
     animateDecryptedText(nameEl, place.name);
   }
 
-  // Rating, distance, open status
+  // Rating with Google review counts
   const ratingEl = document.getElementById('result-rating');
   if (ratingEl) {
-    ratingEl.textContent = `⭐ ${place.rating ? place.rating.toFixed(1) : '4.0'}`;
+    const reviewsStr = place.ratingsCount ? ` (${place.ratingsCount.toLocaleString('id-ID')} ulasan)` : '';
+    ratingEl.textContent = `⭐ ${place.rating ? place.rating.toFixed(1) : '4.5'}${reviewsStr}`;
   }
 
   const distEl = document.getElementById('result-distance');
@@ -87,19 +96,18 @@ export function showResultCard(place) {
 
   const openEl = document.getElementById('result-open-status');
   if (openEl) {
-    if (place.openStatus === 'open') {
+    if (place.isOpen === true) {
       openEl.textContent = 'Buka Sekarang';
-      openEl.className = 'meta-item open-status open';
-    } else if (place.openStatus === 'closed') {
+      openEl.className = 'meta-tag open-status open';
+    } else if (place.isOpen === false) {
       openEl.textContent = 'Sedang Tutup';
-      openEl.className = 'meta-item open-status closed';
+      openEl.className = 'meta-tag open-status closed';
     } else {
       openEl.textContent = 'Jam Fleksibel';
-      openEl.className = 'meta-item open-status unknown';
+      openEl.className = 'meta-tag open-status unknown';
     }
   }
 
-  // Address
   const addrEl = document.getElementById('result-address');
   if (addrEl) addrEl.textContent = place.address || 'Alamat di sekitar titik koordinat';
 
@@ -108,14 +116,12 @@ export function showResultCard(place) {
   if (tagsEl) {
     tagsEl.innerHTML = '';
 
-    // Budget tag
     const bTag = document.createElement('span');
     bTag.className = 'result-tag budget-tag';
     bTag.textContent = `${budgetInfo.icon} ${budgetInfo.label} (${budgetInfo.range})`;
     tagsEl.appendChild(bTag);
 
-    // Other tags
-    (place.tags || []).slice(0, 4).forEach(tag => {
+    (place.tags || []).slice(0, 4).forEach((tag) => {
       const span = document.createElement('span');
       span.className = 'result-tag';
       span.textContent = tag;
@@ -123,17 +129,18 @@ export function showResultCard(place) {
     });
   }
 
-  // Nav buttons
-  const mapsHref = `https://www.google.com/maps/search/?api=1&query=${place.lat},${place.lon}`;
+  // Navigation URLs
+  const mapsHref = place.placeId
+    ? `https://www.google.com/maps/place/?q=place_id:${place.placeId}`
+    : `https://www.google.com/maps/search/?api=1&query=${place.lat},${place.lon}`;
   const wazeHref = `https://waze.com/ul?ll=${place.lat},${place.lon}&navigate=yes`;
+
   const mapsBtn = document.getElementById('btn-maps');
   const wazeBtn = document.getElementById('btn-waze');
   if (mapsBtn) mapsBtn.href = mapsHref;
   if (wazeBtn) wazeBtn.href = wazeHref;
 
-  // Wishlist button state
   updateSaveBtn(place.id);
-
   overlay.hidden = false;
 }
 
@@ -148,7 +155,7 @@ function updateSaveBtn(placeId) {
   if (!btn) return;
   const saved = isInWishlist(placeId);
   btn.textContent = saved ? 'Tersimpan ❤️' : 'Simpan';
-  btn.className = `btn-action btn-save${saved ? ' saved' : ''}`;
+  btn.className = `action-btn btn-wish${saved ? ' saved' : ''}`;
 }
 
 export function initResultCardEvents() {
@@ -177,8 +184,10 @@ export function initResultCardEvents() {
   if (shareBtn) {
     shareBtn.addEventListener('click', async () => {
       if (!_currentPlace) return;
-      const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${_currentPlace.lat},${_currentPlace.lon}`;
-      const text = `Rekomendasi dari Terserah: "${_currentPlace.name}"\nLokasi: ${_currentPlace.address}\nPetunjuk jalan: ${mapsUrl}`;
+      const mapsUrl = _currentPlace.placeId
+        ? `https://www.google.com/maps/place/?q=place_id:${_currentPlace.placeId}`
+        : `https://www.google.com/maps/search/?api=1&query=${_currentPlace.lat},${_currentPlace.lon}`;
+      const text = `Rekomendasi dari Terserah: "${_currentPlace.name}"\nAlamat: ${_currentPlace.address}\nBuka di Google Maps: ${mapsUrl}`;
 
       if (navigator.share) {
         try {
@@ -198,7 +207,6 @@ export function initResultCardEvents() {
   }
 }
 
-/* ========== Wishlist & History Drawers ========== */
 export function refreshWishlistBadge() {
   const count = getWishlist().length;
   const badge = document.getElementById('wishlist-badge');
@@ -250,7 +258,7 @@ export function initWishlistDrawer(onSelectPlace) {
       list.innerHTML = '<p class="empty-state">Koleksi tersimpan masih kosong.<br><small>Gunakan tombol "Simpan" saat menemukan tempat menarik.</small></p>';
       if (footer) footer.hidden = true;
     } else {
-      items.forEach(place => {
+      items.forEach((place) => {
         const card = renderMiniCard(
           place,
           (id) => {
@@ -301,7 +309,7 @@ export function initHistoryDrawer(onSelectPlace) {
       list.innerHTML = '<p class="empty-state">Riwayat masih kosong.<br><small>Tempat yang dipilih otomatis tersimpan di sini.</small></p>';
       if (footer) footer.hidden = true;
     } else {
-      items.forEach(place => {
+      items.forEach((place) => {
         const card = renderMiniCard(
           place,
           null,
