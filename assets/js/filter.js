@@ -2,8 +2,6 @@
  * filter.js — Filter and scoring logic for Terserah
  */
 
-import { CATEGORY_TAGS } from './api.js';
-
 const TIME_SLOTS = {
   morning:   [5, 11],
   noon:      [11, 14],
@@ -13,7 +11,7 @@ const TIME_SLOTS = {
 };
 
 /**
- * Calculate distance in km between two lat/lon pairs (Haversine)
+ * Calculate distance in km between two lat/lon pairs (Haversine formula)
  */
 export function haversineKm(lat1, lon1, lat2, lon2) {
   const R = 6371;
@@ -27,8 +25,7 @@ export function haversineKm(lat1, lon1, lat2, lon2) {
 }
 
 /**
- * Check if a place is open at a given hour based on OSM opening_hours
- * This is a simplified parser — covers the most common formats.
+ * Check if a place is open based on OSM opening_hours string
  * Returns: 'open' | 'closed' | 'unknown'
  */
 export function checkOpenStatus(openingHoursStr, hour) {
@@ -37,15 +34,12 @@ export function checkOpenStatus(openingHoursStr, hour) {
   const oh = openingHoursStr.toLowerCase().trim();
   if (oh === '24/7' || oh === 'mo-su 00:00-24:00') return 'open';
 
-  // Try to parse "Mo-Su HH:MM-HH:MM" style
   const dayMap = { mo:1, tu:2, we:3, th:4, fr:5, sa:6, su:7 };
   const now = new Date();
-  const currentDay = now.getDay() === 0 ? 7 : now.getDay(); // 1=Mon..7=Sun
+  const currentDay = now.getDay() === 0 ? 7 : now.getDay();
 
-  // Handle multiple rules separated by ";"
   const rules = oh.split(';').map(s => s.trim());
   for (const rule of rules) {
-    // Match pattern like "mo-fr 09:00-21:00" or "sa,su 10:00-22:00"
     const m = rule.match(/([a-z,\-]+)\s+(\d{2}):(\d{2})\s*-\s*(\d{2}):(\d{2})/);
     if (!m) continue;
 
@@ -53,8 +47,7 @@ export function checkOpenStatus(openingHoursStr, hour) {
     const openH   = parseInt(m[2]);
     const closeH  = parseInt(m[4]);
 
-    // Expand day ranges
-    let days = [];
+    const days = [];
     const dayTokens = dayPart.split(',');
     for (const token of dayTokens) {
       const rangeParts = token.split('-');
@@ -79,7 +72,7 @@ export function checkOpenStatus(openingHoursStr, hour) {
 }
 
 /**
- * Filter places by food query keywords (fuzzy match on name, tags, cuisine)
+ * Filter places by food / atmosphere query keywords (LIKE search)
  */
 function matchesFoodQuery(place, query) {
   if (!query || !query.trim()) return true;
@@ -91,22 +84,22 @@ function matchesFoodQuery(place, query) {
     ...(place.tags || []),
     place.osmTags?.cuisine || '',
     place.osmTags?.description || '',
+    place.osmTags?.amenity || '',
   ].join(' ').toLowerCase();
 
   return keywords.some(kw => searchable.includes(kw));
 }
 
 /**
- * Filter and enrich a pool of places based on user filters
+ * Filter and score pool of candidate places
  * @param {object[]} places  — raw places from API
- * @param {object}   filters — user-selected filter values
+ * @param {object}   filters — user filter values
  * @param {number}   userLat
  * @param {number}   userLon
- * @returns {object[]}       — filtered & distance-enriched places
+ * @returns {object[]}
  */
 export function filterPlaces(places, filters, userLat, userLon) {
-  const { timeOfDay, minRating, foodQuery } = filters;
-  const [slotStart, slotEnd] = TIME_SLOTS[timeOfDay] || [0, 24];
+  const { timeOfDay = 'any', minRating = 1.0, budget = 'any', foodQuery = '', radiusKm = 5 } = filters;
   const currentHour = new Date().getHours();
 
   return places
@@ -116,31 +109,49 @@ export function filterPlaces(places, filters, userLat, userLon) {
       return { ...place, distance, openStatus };
     })
     .filter(place => {
-      // Time filter: only exclude if we know it's closed AND user selected a specific slot
+      // 1. Radius filter: allow small leeway (+20%) in case candidates are slightly past circle
+      if (place.distance > radiusKm * 1.25) return false;
+
+      // 2. Rating filter
+      if (minRating > 1.0 && place.rating < (minRating - 0.2)) return false;
+
+      // 3. Budget filter
+      if (budget !== 'any' && place.budgetTier && place.budgetTier !== budget) return false;
+
+      // 4. Time filter: only filter out if explicitly closed during user slot
       if (timeOfDay !== 'any' && place.openStatus === 'closed') return false;
 
-      // Food / keyword query filter
+      // 5. Food / Keyword filter
       if (!matchesFoodQuery(place, foodQuery)) return false;
 
       return true;
     })
     // Deduplicate by name (keep closest)
     .reduce((acc, place) => {
-      const existing = acc.find(p => p.name === place.name);
-      if (!existing || place.distance < existing.distance) {
-        return [...acc.filter(p => p.name !== place.name), place];
+      const existing = acc.find(p => p.name.toLowerCase() === place.name.toLowerCase());
+      if (!existing) {
+        acc.push(place);
+      } else if (place.distance < existing.distance) {
+        const idx = acc.indexOf(existing);
+        acc[idx] = place;
       }
       return acc;
     }, [])
-    // Sort by distance for deterministic pool
+    // Sort primarily by distance
     .sort((a, b) => a.distance - b.distance);
 }
 
 /**
- * Randomly pick one place from filtered pool
+ * Random pick algorithm from filtered pool
  */
-export function pickRandom(pool) {
+export function pickRandom(pool, lastPickedId = null) {
   if (!pool || pool.length === 0) return null;
-  const idx = Math.floor(Math.random() * pool.length);
-  return pool[idx];
+  if (pool.length === 1) return pool[0];
+
+  // Try to avoid repeating the last picked place
+  const candidates = pool.filter(p => p.id !== lastPickedId);
+  const targetList = candidates.length > 0 ? candidates : pool;
+
+  const idx = Math.floor(Math.random() * targetList.length);
+  return targetList[idx];
 }
