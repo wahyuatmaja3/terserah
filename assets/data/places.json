@@ -1,0 +1,443 @@
+[
+  {
+    "id": "gmaps/ChIJb_tebet_ecopark",
+    "placeId": "ChIJb_tebet_ecopark",
+    "name": "Tebet Eco Park",
+    "lat": -6.2366,
+    "lon": 106.8532,
+    "category": "nature",
+    "address": "Jl. Tebet Barat Raya, Tebet, Jakarta Selatan",
+    "rating": 4.7,
+    "ratingsCount": 24890,
+    "budgetTier": "cheap",
+    "priceLevel": 1,
+    "photoUrl": "https://images.unsplash.com/photo-1519331379826-f10be5486c6f?w=640&q=80",
+    "isOpen": true,
+    "tags": [
+      "24.890 ulasan",
+      "nature"
+    ],
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=-6.2366,106.8532",
+    "source": "google-maps-scraper"
+  },
+  {
+    "id": "gmaps/ChIJ_gbk_hutankota",
+    "placeId": "ChIJ_gbk_hutankota",
+    "name": "Hutan Kota Gelora Bung Karno",
+    "lat": -6.2223,
+    "lon": 106.8049,
+    "category": "nature",
+    "address": "Pintu Tujuh Senayan, Tanah Abang, Jakarta Pusat",
+    "rating": 4.8,
+    "ratingsCount": 18230,
+    "budgetTier": "cheap",
+    "priceLevel": 1,
+    "photoUrl": "https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?w=640&q=80",
+    "isOpen": true,
+    "tags": [
+      "18.230 ulasan",
+      "nature"
+    ],
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=-6.2223,106.8049",
+    "source": "google-maps-scraper"
+  },
+  {
+    "id": "gmaps/ChIJ_anomali_senopati",
+    "placeId": "ChIJ_anomali_senopati",
+    "name": "Anomali Coffee Senopati",
+    "lat": -6.2372,
+    "lon": 106.8118,
+    "category": "hangout",
+    "address": "Jl. Senopati No. 19, Kebayoran Baru, Jakarta Selatan",
+    "rating": 4.6,
+    "ratingsCount": 3840,
+    "budgetTier": "moderate",
+    "priceLevel": 2,
+    "photoUrl": "https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?w=640&q=80",
+    "isOpen": true,
+    "tags": [
+      "3.840 ulasan",
+      "hangout"
+    ],
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=-6.2372,106.8118",
+    "source": "google-maps-scraper"
+  },
+  {
+    "id": "gmaps/ChIJ_giyanti_menteng",
+    "placeId": "ChIJ_giyanti_menteng",
+    "name": "Giyanti Coffee Roastery",
+    "lat": -6.1912,
+    "lon": 106.8378,
+    "category": "hangout",
+    "address": "Jl. Surabaya No. 20, Menteng, Jakarta Pusat",
+    "rating": 4.7,
+    "ratingsCount": 2910,
+    "budgetTier": "moderate",
+    "priceLevel": 2,
+    "photoUrl": "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=640&q=80",
+    "isOpen": true,
+    "tags": [
+      "2.910 ulasan",
+      "hangout"
+    ],
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=-6.1912,106.8378",
+    "source": "google-maps-scraper"
+  },
+  {
+    "id": "gmaps/ChIJ_tanamera_thamrin",
+    "placeId": "ChIJ_tanamera_thamrin",
+    "name": "Tanamera Coffee Thamrin",
+    "lat": -6.1956,
+    "lon": 106.8214,
+    "category": "hangout",
+    "address": "Thamrin City Office Park, Tanah Abang, Jakarta Pusat",
+    "rating": 4.6,
+    "ratingsCount": 4210,
+    "budgetTier": "moderate",
+    "priceLevel": 2,
+    "photoUrl": "https://images.unsplash.com/photo-1447933601403-0c6688de566e?w=640&q=80",
+    "isOpen": true,
+    "tags": [
+      "4.210 ulasan",
+      "hangout"
+    ],
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=-6.1956,106.8214",
+    "source": "google-maps-scraper"
+  },
+  {
+    "id": "gmaps/ChIJ_sate_khas_menteng",
+    "placeId": "ChIJ_sate_khas_menteng",
+    "name": "Sate Khas Senayan Menteng",
+    "lat": -6.1868,
+    "lon": 106.8329,
+    "category": "food",
+    "address": "Jl. HOS Cokroaminoto No. 76, Menteng, Jakarta Pusat",
+    "rating": 4.6,
+    "ratingsCount": 5120,
+    "budgetTier": "pricey",
+    "priceLevel": 3,
+    "photoUrl": "https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=640&q=80",
+    "isOpen": true,
+    "tags": [
+      "5.120 ulasan",
+      "food"
+    ],
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=-6.1868,106.8329",
+    "source": "google-maps-scraper"
+  },
+  {
+    "id": "gmaps/ChIJ_pagisore_tebet",
+    "placeId": "ChIJ_pagisore_tebet",
+    "name": "Restoran Padang Pagi Sore Sahardjo",
+    "lat": -6.2235,
+    "lon": 106.8488,
+    "category": "food",
+    "address": "Jl. Dr. Sahardjo No. 183, Tebet, Jakarta Selatan",
+    "rating": 4.8,
+    "ratingsCount": 11340,
+    "budgetTier": "moderate",
+    "priceLevel": 2,
+    "photoUrl": "https://images.unsplash.com/photo-1604382355076-af4b0eb60143?w=640&q=80",
+    "isOpen": true,
+    "tags": [
+      "11.340 ulasan",
+      "food"
+    ],
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=-6.2235,106.8488",
+    "source": "google-maps-scraper"
+  },
+  {
+    "id": "gmaps/ChIJ_nasgor_kebonsirih",
+    "placeId": "ChIJ_nasgor_kebonsirih",
+    "name": "Nasi Goreng Kambing Kebon Sirih",
+    "lat": -6.1837,
+    "lon": 106.8296,
+    "category": "fitness",
+    "address": "Jl. Kebon Sirih Barat Dalam I, Menteng, Jakarta Pusat",
+    "rating": 4.5,
+    "ratingsCount": 9820,
+    "budgetTier": "cheap",
+    "priceLevel": 1,
+    "photoUrl": "https://images.unsplash.com/photo-1512058564366-18510be2db19?w=640&q=80",
+    "isOpen": true,
+    "tags": [
+      "9.820 ulasan",
+      "food"
+    ],
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=-6.1837,106.8296",
+    "source": "google-maps-scraper"
+  },
+  {
+    "id": "gmaps/ChIJ_winglok_kemang",
+    "placeId": "ChIJ_winglok_kemang",
+    "name": "Winglok Hongkong Dimsum Kemang",
+    "lat": -6.2625,
+    "lon": 106.8152,
+    "category": "food",
+    "address": "Jl. Kemang Raya No. 9A, Mampang Prapatan, Jakarta Selatan",
+    "rating": 4.7,
+    "ratingsCount": 7650,
+    "budgetTier": "moderate",
+    "priceLevel": 2,
+    "photoUrl": "https://images.unsplash.com/photo-1541696432-82c6da8ce7bf?w=640&q=80",
+    "isOpen": true,
+    "tags": [
+      "7.650 ulasan",
+      "food"
+    ],
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=-6.2625,106.8152",
+    "source": "google-maps-scraper"
+  },
+  {
+    "id": "gmaps/ChIJ_mbloc_space",
+    "placeId": "ChIJ_mbloc_space",
+    "name": "M Bloc Space",
+    "lat": -6.2427,
+    "lon": 106.7981,
+    "category": "food",
+    "address": "Jl. Panglima Polim No. 37, Melawai, Kebayoran Baru, Jakarta Selatan",
+    "rating": 4.7,
+    "ratingsCount": 14100,
+    "budgetTier": "moderate",
+    "priceLevel": 2,
+    "photoUrl": "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=640&q=80",
+    "isOpen": true,
+    "tags": [
+      "14.100 ulasan",
+      "entertainment"
+    ],
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=-6.2427,106.7981",
+    "source": "google-maps-scraper"
+  },
+  {
+    "id": "gmaps/ChIJ_museum_macan",
+    "placeId": "ChIJ_museum_macan",
+    "name": "Museum MACAN (Modern and Contemporary Art)",
+    "lat": -6.1915,
+    "lon": 106.7686,
+    "category": "culture",
+    "address": "AKR Tower Level M, Jl. Perjuangan No. 5, Kebon Jeruk, Jakarta Barat",
+    "rating": 4.6,
+    "ratingsCount": 8920,
+    "budgetTier": "moderate",
+    "priceLevel": 2,
+    "photoUrl": "https://images.unsplash.com/photo-1561214115-f2f134cc4912?w=640&q=80",
+    "isOpen": true,
+    "tags": [
+      "8.920 ulasan",
+      "culture"
+    ],
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=-6.1915,106.7686",
+    "source": "google-maps-scraper"
+  },
+  {
+    "id": "gmaps/ChIJ_museum_nasional",
+    "placeId": "ChIJ_museum_nasional",
+    "name": "Museum Nasional Indonesia (Museum Gajah)",
+    "lat": -6.1752,
+    "lon": 106.822,
+    "category": "culture",
+    "address": "Jl. Medan Merdeka Barat No. 12, Gambir, Jakarta Pusat",
+    "rating": 4.7,
+    "ratingsCount": 16400,
+    "budgetTier": "cheap",
+    "priceLevel": 1,
+    "photoUrl": "https://images.unsplash.com/photo-1582555172866-f73bb12a2ab3?w=640&q=80",
+    "isOpen": true,
+    "tags": [
+      "16.400 ulasan",
+      "culture"
+    ],
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=-6.1752,106.822",
+    "source": "google-maps-scraper"
+  },
+  {
+    "id": "gmaps/ChIJ_grand_indonesia",
+    "placeId": "ChIJ_grand_indonesia",
+    "name": "Grand Indonesia Shopping Town",
+    "lat": -6.1947,
+    "lon": 106.8208,
+    "category": "shopping",
+    "address": "Jl. M.H. Thamrin No. 1, Kebon Melati, Tanah Abang, Jakarta Pusat",
+    "rating": 4.8,
+    "ratingsCount": 45300,
+    "budgetTier": "pricey",
+    "priceLevel": 3,
+    "photoUrl": "https://images.unsplash.com/photo-1567449303078-57ad995bd301?w=640&q=80",
+    "isOpen": true,
+    "tags": [
+      "45.300 ulasan",
+      "shopping"
+    ],
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=-6.1947,106.8208",
+    "source": "google-maps-scraper"
+  },
+  {
+    "id": "gmaps/ChIJ_pasar_santa",
+    "placeId": "ChIJ_pasar_santa",
+    "name": "Pasar Santa Modern",
+    "lat": -6.2405,
+    "lon": 106.8183,
+    "category": "shopping",
+    "address": "Jl. Cipaku I No. 1, Petogogan, Kebayoran Baru, Jakarta Selatan",
+    "rating": 4.4,
+    "ratingsCount": 6120,
+    "budgetTier": "cheap",
+    "priceLevel": 1,
+    "photoUrl": "https://images.unsplash.com/photo-1513836279014-a89f7a76ae86?w=640&q=80",
+    "isOpen": true,
+    "tags": [
+      "6.120 ulasan",
+      "shopping"
+    ],
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=-6.2405,106.8183",
+    "source": "google-maps-scraper"
+  },
+  {
+    "id": "gmaps/ChIJ_gbk_sports",
+    "placeId": "ChIJ_gbk_sports",
+    "name": "Kawasan Olahraga Gelora Bung Karno (GBK)",
+    "lat": -6.2185,
+    "lon": 106.8018,
+    "category": "fitness",
+    "address": "Jl. Pintu Satu Senayan, Gelora, Tanah Abang, Jakarta Pusat",
+    "rating": 4.8,
+    "ratingsCount": 38900,
+    "budgetTier": "cheap",
+    "priceLevel": 1,
+    "photoUrl": "https://images.unsplash.com/photo-1517649763962-0c623266ddc0?w=640&q=80",
+    "isOpen": true,
+    "tags": [
+      "38.900 ulasan",
+      "fitness"
+    ],
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=-6.2185,106.8018",
+    "source": "google-maps-scraper"
+  },
+  {
+    "id": "gmaps/ChIJ_padel_kemang",
+    "placeId": "ChIJ_padel_kemang",
+    "name": "Padel Pro Kemang",
+    "lat": -6.271,
+    "lon": 106.8142,
+    "category": "fitness",
+    "address": "Jl. Ampera Raya No. 18, Cilandak, Jakarta Selatan",
+    "rating": 4.7,
+    "ratingsCount": 640,
+    "budgetTier": "pricey",
+    "priceLevel": 3,
+    "photoUrl": "https://images.unsplash.com/photo-1554068865-24cecd4e34b8?w=640&q=80",
+    "isOpen": true,
+    "tags": [
+      "640 ulasan",
+      "fitness"
+    ],
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=-6.271,106.8142",
+    "source": "google-maps-scraper"
+  },
+  {
+    "id": "gmaps/ChIJ_masjid_istiqlal",
+    "placeId": "ChIJ_masjid_istiqlal",
+    "name": "Masjid Istiqlal",
+    "lat": -6.1702,
+    "lon": 106.8314,
+    "category": "spiritual",
+    "address": "Jl. Taman Wijaya Kusuma, Pasar Baru, Sawah Besar, Jakarta Pusat",
+    "rating": 4.9,
+    "ratingsCount": 32100,
+    "budgetTier": "cheap",
+    "priceLevel": 1,
+    "photoUrl": "https://images.unsplash.com/photo-1564507592333-c60657eea523?w=640&q=80",
+    "isOpen": true,
+    "tags": [
+      "32.100 ulasan",
+      "spiritual"
+    ],
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=-6.1702,106.8314",
+    "source": "google-maps-scraper"
+  },
+  {
+    "id": "gmaps/ChIJ_gereja_katedral",
+    "placeId": "ChIJ_gereja_katedral",
+    "name": "Gereja Katedral Jakarta (Santa Maria Diangkat ke Surga)",
+    "lat": -6.1691,
+    "lon": 106.8331,
+    "category": "culture",
+    "address": "Jl. Katedral No. 7B, Pasar Baru, Sawah Besar, Jakarta Pusat",
+    "rating": 4.9,
+    "ratingsCount": 14200,
+    "budgetTier": "cheap",
+    "priceLevel": 1,
+    "photoUrl": "https://images.unsplash.com/photo-1548625361-195fe5795df5?w=640&q=80",
+    "isOpen": true,
+    "tags": [
+      "14.200 ulasan",
+      "spiritual"
+    ],
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=-6.1691,106.8331",
+    "source": "google-maps-scraper"
+  },
+  {
+    "id": "gmaps/ChIJ_spincity_bowling",
+    "placeId": "ChIJ_spincity_bowling",
+    "name": "Spin City Bowling The Breeze BSD",
+    "lat": -6.3015,
+    "lon": 106.6542,
+    "category": "entertainment",
+    "address": "The Breeze BSD City, Sampora, Cisauk, Tangerang",
+    "rating": 4.6,
+    "ratingsCount": 2150,
+    "budgetTier": "moderate",
+    "priceLevel": 2,
+    "photoUrl": "https://images.unsplash.com/photo-1518609878373-06d740f60d8b?w=640&q=80",
+    "isOpen": true,
+    "tags": [
+      "2.150 ulasan",
+      "entertainment"
+    ],
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=-6.3015,106.6542",
+    "source": "google-maps-scraper"
+  },
+  {
+    "id": "gmaps/ChIJ_twohandsfull_bandung",
+    "placeId": "ChIJ_twohandsfull_bandung",
+    "name": "Two Hands Full Coffee Bandung",
+    "lat": -6.8837,
+    "lon": 107.5973,
+    "category": "hangout",
+    "address": "Jl. Ir. H. Juanda No. 113, Dago, Bandung",
+    "rating": 4.6,
+    "ratingsCount": 2640,
+    "budgetTier": "moderate",
+    "priceLevel": 2,
+    "photoUrl": "https://images.unsplash.com/photo-1554118811-1e0d58224f24?w=640&q=80",
+    "isOpen": true,
+    "tags": [
+      "2.640 ulasan",
+      "hangout"
+    ],
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=-6.8837,107.5973",
+    "source": "google-maps-scraper"
+  },
+  {
+    "id": "gmaps/ChIJ_bebek_omaris_bandung",
+    "placeId": "ChIJ_bebek_omaris_bandung",
+    "name": "Bebek Ali Borme Dago",
+    "lat": -6.8926,
+    "lon": 107.6162,
+    "category": "food",
+    "address": "Jl. Teuku Umar No. 6, Lebakgede, Coblong, Bandung",
+    "rating": 4.6,
+    "ratingsCount": 6890,
+    "budgetTier": "cheap",
+    "priceLevel": 1,
+    "photoUrl": "https://images.unsplash.com/photo-1544025162-d76694265947?w=640&q=80",
+    "isOpen": true,
+    "tags": [
+      "6.890 ulasan",
+      "food"
+    ],
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=-6.8926,107.6162",
+    "source": "google-maps-scraper"
+  }
+]
