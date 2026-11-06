@@ -1,25 +1,15 @@
 /**
- * api.js : Google Maps JavaScript API & Google Places Service for Terserah
- * Exclusively uses Google Places API & Google Geocoding (no OpenStreetMap)
- * Integrated with Anti Pay-As-You-Go Quota Guard
+ * api.js : Places Data Provider & Geocoding for Terserah
+ * Loads scraped Google Maps data offline from assets/data/places.json
+ * 100% Client-side & GitHub Pages ready without requiring an API key
  */
 
-import { isQuotaLocked, recordApiCall, lockDueToGoogleError } from './storage.js';
-
-export const CATEGORY_GOOGLE_TYPES = {
-  hangout:       ['cafe', 'bar'],
-  food:          ['restaurant', 'bakery', 'meal_takeaway'],
-  entertainment: ['movie_theater', 'bowling_alley', 'amusement_park', 'night_club'],
-  nature:        ['park', 'tourist_attraction', 'campground'],
-  shopping:      ['shopping_mall', 'department_store', 'supermarket'],
-  culture:       ['museum', 'art_gallery'],
-  fitness:       ['gym', 'stadium'],
-  spiritual:     ['mosque', 'church', 'place_of_worship', 'hindu_temple'],
-};
+import { haversineKm } from './filter.js';
 
 export const CATEGORY_LABELS = {
   hangout:       { emoji: '☕', label: 'Nongkrong' },
   food:          { emoji: '🍜', label: 'Makan' },
+  snack:         { emoji: '🥟', label: 'Jajan' },
   entertainment: { emoji: '🎮', label: 'Hiburan' },
   nature:        { emoji: '🌿', label: 'Alam' },
   shopping:      { emoji: '🛍️', label: 'Belanja' },
@@ -35,282 +25,170 @@ export const BUDGET_LABELS = {
   luxury:   { label: 'Mewah', range: '> Rp 300.000', icon: '💎', priceLevel: 4 },
 };
 
-let placesService = null;
-let geocoder = null;
+// In-memory cache for offline scraped places
+let placesCache = null;
 
 /**
- * Dynamically load Google Maps JavaScript API SDK
+ * Load offline scraped Google Maps dataset
  */
-export function loadGoogleMapsSDK(apiKey) {
-  return new Promise((resolve, reject) => {
-    if (window.google && window.google.maps && window.google.maps.places) {
-      resolve(window.google.maps);
-      return;
-    }
+export async function loadOfflinePlaces(forceReload = false) {
+  // 1. If global window.TERSERAH_PLACES is available (e.g. file:/// protocol)
+  if (typeof window !== 'undefined' && window.TERSERAH_PLACES && Array.isArray(window.TERSERAH_PLACES) && window.TERSERAH_PLACES.length > 0 && !forceReload) {
+    placesCache = window.TERSERAH_PLACES;
+    return placesCache;
+  }
 
-    const existing = document.getElementById('google-maps-sdk');
-    if (existing) existing.remove();
+  if (placesCache && !forceReload) {
+    return placesCache;
+  }
 
-    const script = document.createElement('script');
-    script.id = 'google-maps-sdk';
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(apiKey)}&libraries=places&language=id`;
-    script.async = true;
-    script.defer = true;
-
-    script.onload = () => {
-      if (window.google && window.google.maps) {
-        resolve(window.google.maps);
-      } else {
-        reject(new Error('Google Maps SDK gagal diinisialisasi.'));
+  // 2. Fetch for HTTP/HTTPS server or GitHub Pages
+  try {
+    const res = await fetch('assets/data/places.json?v=' + Date.now());
+    if (res.ok) {
+      const data = await res.json();
+      if (Array.isArray(data) && data.length > 0) {
+        placesCache = data;
+        return placesCache;
       }
-    };
-
-    script.onerror = () => {
-      reject(new Error('Gagal memuat Google Maps SDK. Pastikan API key valid.'));
-    };
-
-    document.head.appendChild(script);
-  });
-}
-
-/**
- * Initialize Places Service and Geocoder
- */
-export function initServices(mapInstance) {
-  if (!window.google || !window.google.maps) return;
-  placesService = new google.maps.places.PlacesService(mapInstance);
-  geocoder = new google.maps.Geocoder();
-}
-
-/**
- * Convert Google price_level (0-4) to internal budgetTier
- */
-function getBudgetTierFromPriceLevel(priceLevel, category = 'food') {
-  if (priceLevel === 1) return 'cheap';
-  if (priceLevel === 2) return 'moderate';
-  if (priceLevel === 3) return 'pricey';
-  if (priceLevel === 4) return 'luxury';
-  if (category === 'nature' || category === 'spiritual') return 'cheap';
-  return 'moderate';
-}
-
-/**
- * Parse Google Places result object into unified place schema
- */
-function normalizeGooglePlace(place, category = 'food') {
-  const loc = place.geometry?.location;
-  if (!loc) return null;
-
-  const lat = typeof loc.lat === 'function' ? loc.lat() : loc.lat;
-  const lon = typeof loc.lng === 'function' ? loc.lng() : loc.lng;
-
-  let photoUrl = null;
-  if (place.photos && place.photos.length > 0) {
-    try {
-      photoUrl = place.photos[0].getUrl({ maxWidth: 640, maxHeight: 400 });
-    } catch {
-      photoUrl = null;
     }
+  } catch (err) {
+    console.warn('Gagal memuat assets/data/places.json via fetch:', err);
   }
 
-  const budgetTier = getBudgetTierFromPriceLevel(place.price_level, category);
+  placesCache = (typeof window !== 'undefined' && window.TERSERAH_PLACES) || placesCache || [];
+  return placesCache;
+}
 
-  const tags = [];
-  if (place.user_ratings_total) {
-    tags.push(`${place.user_ratings_total.toLocaleString('id-ID')} ulasan`);
-  }
-  if (place.types && place.types.length > 0) {
-    const usefulTypes = place.types
-      .filter(t => !['point_of_interest', 'establishment'].includes(t))
-      .slice(0, 3)
-      .map(t => t.replace(/_/g, ' '));
-    tags.push(...usefulTypes);
-  }
-
+/**
+ * Get statistics of the loaded places database
+ */
+export async function getDatabaseStats() {
+  const places = await loadOfflinePlaces();
+  const categoryCounts = {};
+  places.forEach(p => {
+    categoryCounts[p.category] = (categoryCounts[p.category] || 0) + 1;
+  });
   return {
-    id: `gmaps/${place.place_id || Math.random()}`,
-    placeId: place.place_id,
-    name: place.name || 'Tempat Tanpa Nama',
-    lat,
-    lon,
-    category,
-    address: place.vicinity || place.formatted_address || 'Area sekitar',
-    rating: place.rating || 4.2,
-    ratingsCount: place.user_ratings_total || null,
-    budgetTier,
-    priceLevel: place.price_level ?? null,
-    photoUrl,
-    isOpen: place.opening_hours ? (place.opening_hours.isOpen ? place.opening_hours.isOpen() : place.opening_hours.open_now) : null,
-    tags,
-    googleData: place,
+    total: places.length,
+    categoryCounts,
   };
 }
 
 /**
- * Fetch places using Google Maps PlacesService
+ * Fetch and filter places based on location and criteria
  */
-export async function fetchPlacesViaGoogle({ categories, lat, lon, radiusKm, foodQuery = '' }) {
-  if (!placesService) {
-    throw new Error('PlacesService belum siap. Muat Google Maps terlebih dahulu.');
+export async function fetchPlaces({ categories = ['hangout'], lat, lon, radiusKm = 5, foodQuery = '' }) {
+  const allPlaces = await loadOfflinePlaces();
+
+  if (!allPlaces || allPlaces.length === 0) {
+    return [];
   }
 
-  // Quota guard check before request
-  const quota = isQuotaLocked();
-  if (quota.locked) {
-    throw new Error(`Perlindungan Kuota: ${quota.reason}. Program dihentikan untuk menghindari tagihan Pay-As-You-Go.`);
-  }
+  const queryTerms = (foodQuery || '')
+    .toLowerCase()
+    .split(',')
+    .map(t => t.trim())
+    .filter(Boolean);
 
-  const radiusMeters = radiusKm * 1000;
-  const location = new google.maps.LatLng(lat, lon);
-  const placesMap = new Map();
+  // 1. Calculate distance & filter candidates
+  const candidates = allPlaces
+    .map(p => {
+      const distance = haversineKm(lat, lon, p.lat, p.lon);
+      return { ...p, distance };
+    })
+    .filter(p => {
+      // Category filter (if category is selected)
+      if (categories && categories.length > 0 && !categories.includes(p.category)) {
+        return false;
+      }
 
-  const primaryCategory = categories[0] || 'food';
+      // Keyword / Food / Atmosphere filter
+      if (queryTerms.length > 0) {
+        const textTarget = `${p.name} ${p.address} ${(p.tags || []).join(' ')} ${p.category}`.toLowerCase();
+        const matchesAny = queryTerms.some(term => textTarget.includes(term));
+        if (!matchesAny) return false;
+      }
 
-  // 1. If user typed a food query (e.g. "matcha", "sushi", "dimsum")
-  if (foodQuery && foodQuery.trim()) {
-    const keywords = foodQuery.split(',').map(s => s.trim()).filter(Boolean);
-    for (const kw of keywords) {
-      // Recheck quota
-      if (isQuotaLocked().locked) break;
-
-      await new Promise((resolve) => {
-        placesService.textSearch(
-          {
-            location,
-            radius: radiusMeters,
-            query: `${kw} di sekitar`,
-          },
-          (results, status) => {
-            if (status === google.maps.places.PlacesServiceStatus.OVER_QUERY_LIMIT || status === google.maps.places.PlacesServiceStatus.REQUEST_DENIED) {
-              lockDueToGoogleError('Google API: Batas kuota harian atau kredit terlampaui (OVER_QUERY_LIMIT)');
-            } else if (status === google.maps.places.PlacesServiceStatus.OK && results) {
-              recordApiCall(1);
-              results.forEach((p) => {
-                const norm = normalizeGooglePlace(p, primaryCategory);
-                if (norm) {
-                  norm.tags.unshift(`Menu: ${kw}`);
-                  placesMap.set(norm.id, norm);
-                }
-              });
-            }
-            resolve();
-          }
-        );
-      });
-    }
-  }
-
-  // 2. Fetch nearby places based on categories
-  const typesToQuery = [];
-  categories.forEach((cat) => {
-    const types = CATEGORY_GOOGLE_TYPES[cat] || ['restaurant'];
-    typesToQuery.push({ cat, type: types[0] });
-  });
-
-  for (const item of typesToQuery.slice(0, 2)) {
-    // Recheck quota
-    if (isQuotaLocked().locked) break;
-
-    await new Promise((resolve) => {
-      placesService.nearbySearch(
-        {
-          location,
-          radius: radiusMeters,
-          type: item.type,
-        },
-        (results, status) => {
-          if (status === google.maps.places.PlacesServiceStatus.OVER_QUERY_LIMIT || status === google.maps.places.PlacesServiceStatus.REQUEST_DENIED) {
-            lockDueToGoogleError('Google API: Batas kuota harian atau kredit terlampaui (OVER_QUERY_LIMIT)');
-          } else if (status === google.maps.places.PlacesServiceStatus.OK && results) {
-            recordApiCall(1);
-            results.forEach((p) => {
-              const norm = normalizeGooglePlace(p, item.cat);
-              if (norm && !placesMap.has(norm.id)) {
-                placesMap.set(norm.id, norm);
-              }
-            });
-          }
-          resolve();
-        }
-      );
+      return true;
     });
+
+  // 2. Separate places within radius vs farther away
+  const withinRadius = candidates.filter(p => p.distance <= radiusKm * 1.5);
+
+  if (withinRadius.length > 0) {
+    return withinRadius.sort((a, b) => a.distance - b.distance);
   }
 
-  return Array.from(placesMap.values());
+  // Fallback: If no places strictly in radius, provide nearest places in dataset
+  // so user always gets actionable recommendations
+  return candidates.sort((a, b) => a.distance - b.distance).slice(0, 10);
 }
 
 /**
- * Geocode text/city address to coordinates using Google Geocoder
+ * Geocode text address or city name using OpenStreetMap Nominatim
  */
-export function geocodeAddress(query) {
-  return new Promise((resolve, reject) => {
-    if (isQuotaLocked().locked) {
-      reject(new Error('Perlindungan Kuota aktif. Program dihentikan untuk menghindari tagihan.'));
-      return;
-    }
+export async function geocodeAddress(query) {
+  if (!query || !query.trim()) return null;
 
-    if (!geocoder) {
-      if (window.google && window.google.maps) {
-        geocoder = new google.maps.Geocoder();
-      } else {
-        reject(new Error('Geocoder belum diinisialisasi.'));
-        return;
-      }
-    }
-
-    geocoder.geocode({ address: query }, (results, status) => {
-      if (status === google.maps.GeocoderStatus.OVER_QUERY_LIMIT || status === google.maps.GeocoderStatus.REQUEST_DENIED) {
-        lockDueToGoogleError('Google API Geocoder: Batas kuota tercapai (OVER_QUERY_LIMIT)');
-        resolve(null);
-      } else if (status === google.maps.GeocoderStatus.OK && results && results.length > 0) {
-        recordApiCall(1);
-        const item = results[0];
-        const lat = item.geometry.location.lat();
-        const lon = item.geometry.location.lng();
-        resolve({
-          lat,
-          lon,
-          displayName: item.formatted_address,
-        });
-      } else {
-        resolve(null);
-      }
+  try {
+    const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&countrycodes=id&limit=1`;
+    const res = await fetch(url, {
+      headers: {
+        'Accept-Language': 'id,en',
+        'User-Agent': 'TerserahApp/1.0',
+      },
     });
-  });
+    if (!res.ok) return null;
+
+    const data = await res.json();
+    if (data && data.length > 0) {
+      return {
+        lat: parseFloat(data[0].lat),
+        lon: parseFloat(data[0].lon),
+        displayName: data[0].display_name,
+      };
+    }
+  } catch (err) {
+    console.warn('Geocoding error:', err);
+  }
+
+  // Fallback: Check if matches any place in our local dataset
+  const places = await loadOfflinePlaces();
+  const qLower = query.toLowerCase();
+  const found = places.find(p => p.address.toLowerCase().includes(qLower) || p.name.toLowerCase().includes(qLower));
+  if (found) {
+    return {
+      lat: found.lat,
+      lon: found.lon,
+      displayName: found.address,
+    };
+  }
+
+  return null;
 }
 
 /**
- * Reverse geocode lat/lon to human readable address using Google Geocoder
+ * Reverse geocode lat/lon to friendly address name
  */
-export function reverseGeocodeLatLng(lat, lon) {
-  return new Promise((resolve) => {
-    if (isQuotaLocked().locked) {
-      resolve(null);
-      return;
-    }
-
-    if (!geocoder) {
-      if (window.google && window.google.maps) {
-        geocoder = new google.maps.Geocoder();
-      } else {
-        resolve(null);
-        return;
-      }
-    }
-
-    geocoder.geocode({ location: { lat, lng: lon } }, (results, status) => {
-      if (status === google.maps.GeocoderStatus.OVER_QUERY_LIMIT || status === google.maps.GeocoderStatus.REQUEST_DENIED) {
-        lockDueToGoogleError('Google API Geocoder: Batas kuota tercapai (OVER_QUERY_LIMIT)');
-        resolve(null);
-      } else if (status === google.maps.GeocoderStatus.OK && results && results.length > 0) {
-        recordApiCall(1);
-        const item = results[0];
-        const parts = item.formatted_address.split(',');
-        const shortName = parts.slice(0, 2).join(',').trim();
-        resolve(shortName || item.formatted_address);
-      } else {
-        resolve(null);
-      }
+export async function reverseGeocodeLatLng(lat, lon) {
+  try {
+    const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`;
+    const res = await fetch(url, {
+      headers: {
+        'Accept-Language': 'id,en',
+        'User-Agent': 'TerserahApp/1.0',
+      },
     });
-  });
+    if (res.ok) {
+      const data = await res.json();
+      if (data && data.display_name) {
+        return data.display_name;
+      }
+    }
+  } catch {
+    // fallback
+  }
+
+  return `${lat.toFixed(4)}, ${lon.toFixed(4)}`;
 }

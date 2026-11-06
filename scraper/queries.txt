@@ -1,0 +1,139 @@
+# ============================================================
+# queries.txt : Master Database Search Queries untuk Terserah
+# Mencakup Kuliner Kaki Lima (PKL), Warung Tenda, Cafe Viral, 
+# Hiburan, Alam, Belanja, Olahraga, dan Tempat Bersejarah
+# ============================================================
+
+# --- 1. Kuliner Kaki Lima & Warung Viral (Street Food) ---
+warung penyetan surabaya
+tahu tek tahu telor cak kahar pak jayen surabaya
+lontong balap pak gendut kranggan surabaya
+sate klopo ondomohen bu asih surabaya
+sate ayam sate kambing surabaya
+nasi babat madura pegirian gosong surabaya
+nasi cumi pasar atom surabaya
+bakso viral bakso urat bakso pak war surabaya
+mie ayam pangsit mie mapan surabaya
+nasi bebek purnama bebek sinjay surabaya
+warung tenda nasi goreng jawa krengsengan surabaya
+martabak dan terang bulan surabaya
+pecel madiun pecel semanggi surabaya
+es campur es teler durian surabaya
+gultik gulai tikungan surabaya
+mie gacoan mie pedas surabaya
+rujak cingur ahmad jais surabaya
+
+# --- 2. Kuliner Legendaris & Makanan Khas Jawa Timur ---
+rawon setan rawon kalkulator surabaya
+soto ayam ambengan soto daging madura surabaya
+bebek goreng h slamet bebek harissa surabaya
+seafood layar seafood kenjeran surabaya
+lontong kupang lontong balap sidoarjo
+nasi krawu bu mattaim mbuk su gresik
+pudak sentra oleh oleh gresik
+pos ketan legenda batu malang
+bakso presiden bakso bakar malang
+
+# --- 3. Warkop, Kopi Tiam, Street Drink & Cafe Viral ---
+warkop giras kopi cangkruk surabaya
+kedai kopi tiam sarapan pagi surabaya
+coffee shop specialty roastery surabaya
+cafe aesthetic rooftop surabaya barat
+cafe hits instagramable surabaya timur
+cafe live music malam surabaya
+gelato ice cream surabaya
+es coklat tambah umur surabaya
+stmj karang menjangan surabaya
+angkringan malam kopi joss surabaya
+cafe hits instagramable sidoarjo
+warkop nongkrong kuliner malam gresik
+
+# --- 4. Hiburan, Rekreasi, Game Center, Rental PS & Biliar ---
+arena biliar billiard lounge surabaya
+strike billiard pool lounge surabaya barat
+masterpiece billiard surabaya timur
+billiard cafe lounge surabaya pusat
+game center arcade timezone tunjungan plaza surabaya
+timezone pakuwon mall galaxy mall surabaya
+funworld game center royal plaza surabaya
+cow play cow moo pakuwon mall surabaya
+bioskop cinema xxi tunjungan plaza grand city surabaya
+cinema xxi pakuwon ciputra world surabaya
+cgv marvell city bg junction surabaya
+cinepolis city of tomorrow cito surabaya
+board game cafe tabletoys surabaya
+dots board game lounge cafe surabaya
+rental ps playstation ps5 game lounge surabaya
+rental playstation ps4 ps5 rungkut gubeng surabaya
+bowling center kaza city surabaya
+karaoke keluarga happy puppy nav surabaya
+
+# --- 5. Jajan & Camilan Kaki Lima / Viral (Snack) ---
+dimsum choie dimsum mbledos surabaya
+dimsum uma yum cha viral surabaya
+winglok hongkong dimsum kemang jakarta
+dimsum 515 bolekaka dimsum surabaya
+chikuro tunjungan plaza galaxy mall surabaya
+shihlin taiwan street snacks tunjungan pakuwon surabaya
+ayam popcorn pok pok crispy chicken surabaya
+hot star large fried chicken surabaya
+siomay bandung bu narmi sin chuan kertajaya surabaya
+siomay batagor mang ade surabaya
+batagor kingsley batagor riri bandung
+batagor budi mulia pkl surabaya
+pentol budi mulia untag surabaya
+pentol gila pentol kabul rungkut surabaya
+cilok ceker pedas cireng bintaro surabaya
+takoyaki street gindaco tunjungan surabaya
+kue pancong lumer balap surabaya
+pukis banyumas pukis kota baru surabaya
+dear butter croffle tokyo gorilla surabaya
+tahu gejrot bang jack pkl surabaya
+pisang keju aroma tanduk crunchy surabaya
+jasuke jagung susu keju manis surabaya
+
+# --- 5. Wisata Alam, Taman & Healing ---
+taman bungkul taman apsari surabaya
+wisata alam mangrove rungkut wonorejo surabaya
+hutan kota kebun bibit bratang surabaya
+pantai kenjeran jembatan suramadu surabaya
+wisata air terjun dundung trawas pacet mojokerto
+spot healing sejuk prigen tretes pasuruan
+
+# --- 6. Sentra PKL, Pasar Malam & Belanja ---
+sentra pkl g-walk citraland surabaya
+pasar malam kodam brawijaya surabaya
+pasar atom kuliner belanja surabaya
+tunjungan plaza pakuwon mall surabaya
+pusat oleh oleh khas surabaya genteng
+thrift market pasar gembong surabaya
+
+# --- 7. Wisata Budaya, Museum & Heritage ---
+wisata kota lama jembatan merah surabaya
+museum sepuluh nopember tugu pahlawan surabaya
+house of sampoerna heritage surabaya
+monumen kapal selam surabaya
+balai pemuda alon alon suroboyo
+
+# --- 8. Spot Olahraga & Kebugaran ---
+lapangan padel tennis surabaya
+lapangan badminton bulutangkis surabaya
+arena futsal mini soccer surabaya
+fitness center gym mega gym surabaya
+jogging track gor kertajaya surabaya
+
+# --- 9. Wisata Religi Bersejarah ---
+masjid nasional al akbar surabaya
+kawasan wisata religi sunan ampel surabaya
+klenteng sanggar agung kenjeran surabaya
+gereja kathedral hati kudus yesus surabaya
+makam maulana malik ibrahim gresik
+
+# --- 10. Kuliner Kaki Lima & Viral Kota Lain ---
+gultik blok m jakarta selatan
+bubur ayam barito jakarta selatan
+nasi uduk gondangdia jakarta
+kuliner malam cibadak bandung
+cuanki serayu bandung
+angkringan kopi joss malioboro jogja
+gudeg yu djum wijilan jogja

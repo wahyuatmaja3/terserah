@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Terserah : Pemilih Tempat Acak Google Maps</title>
-  <meta name="description" content="Bingung mau ke mana? Terserah memilihkan tempat nongkrong, makan, dan rekreasi secara acak dengan Google Maps dan Google Places." />
+  <meta name="description" content="Bingung mau ke mana? Terserah memilihkan tempat nongkrong, makan, dan rekreasi secara acak dengan data asli Google Maps." />
   <meta name="theme-color" content="#090a0f" />
 
   <!-- PWA -->
@@ -14,6 +14,9 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@600;700&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet" />
+
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
 
   <!-- Main Anti-Slop CSS -->
   <link rel="stylesheet" href="assets/css/style.css" />
@@ -28,9 +31,9 @@
         <h1 class="brand-title">Kamu mau ke mana?</h1>
       </div>
       <div class="header-nav">
-        <button class="nav-btn" id="btn-api-key" aria-label="Atur Kunci Google Maps dan Batas Kuota">
-          <span class="nav-btn-icon">🛡️</span>
-          <span class="nav-btn-label">API & Kuota</span>
+        <button class="nav-btn" id="btn-database" aria-label="Informasi Database & Scraper">
+          <span class="nav-btn-icon">📦</span>
+          <span class="nav-btn-label">Data Places</span>
         </button>
         <button class="nav-btn" id="btn-wishlist" aria-label="Buka koleksi favorit">
           <span class="nav-btn-icon">❤️</span>
@@ -49,37 +52,13 @@
   <div class="app-workspace">
 
     <!-- MAP VIEWPORT -->
-    <section class="map-viewport" aria-label="Peta Google Maps">
+    <section class="map-viewport" aria-label="Peta Interaktif">
       <div id="map"></div>
       <div class="map-hint" id="map-hint">
         <span>💡 Klik area mana pun pada peta untuk geser titik acuan</span>
       </div>
       <div class="pool-badge" id="pool-indicator" hidden>
-        <span id="pool-count">0</span> tempat ditemukan via Google Places
-      </div>
-
-      <!-- No API Key Notice -->
-      <div class="api-notice-banner" id="api-key-banner" hidden>
-        <div class="api-notice-box spotlight-card">
-          <span class="api-notice-icon">🗺️</span>
-          <div class="api-notice-text">
-            <strong>Google Maps API Key Belum Terpasang</strong>
-            <p>Masukkan API Key Anda untuk mengaktifkan peta dan pencarian Google Places.</p>
-          </div>
-          <button class="btn-setup-key" id="btn-open-api-modal">Atur API Key</button>
-        </div>
-      </div>
-
-      <!-- Quota Exceeded Lock Notice -->
-      <div class="api-notice-banner" id="quota-lock-banner" hidden>
-        <div class="api-notice-box quota-box spotlight-card">
-          <span class="api-notice-icon">🛑</span>
-          <div class="api-notice-text">
-            <strong style="color: #ef4444;">Perlindungan Kuota Aktif</strong>
-            <p id="quota-lock-desc">Batas penggunaan tercapai. Program dihentikan otomatis untuk mencegah tagihan Pay-As-You-Go.</p>
-          </div>
-          <button class="btn-setup-key btn-unlock" id="btn-manage-quota">Buka Pengaturan Kuota</button>
-        </div>
+        <span id="pool-count">0</span> tempat ditemukan dalam radius
       </div>
     </section>
 
@@ -130,6 +109,7 @@
         <div class="chips-container" id="category-chips" role="group" aria-label="Pilih jenis tempat">
           <button class="filter-chip active" data-value="hangout">☕ Nongkrong</button>
           <button class="filter-chip" data-value="food">🍜 Makan</button>
+          <button class="filter-chip" data-value="snack">🥟 Jajan</button>
           <button class="filter-chip" data-value="entertainment">🎮 Hiburan</button>
           <button class="filter-chip" data-value="nature">🌿 Alam</button>
           <button class="filter-chip" data-value="shopping">🛍️ Belanja</button>
@@ -180,9 +160,9 @@
           type="text"
           id="input-food-query"
           class="field-input"
-          placeholder="contoh: matcha, sushi, dimsum, kopi susu, seafood..."
+          placeholder="contoh: kopi susu, matcha, dimsum, ramen, outdoor, wifi..."
         />
-        <p class="field-hint">Google Places akan langsung mencari tempat spesifik sesuai menu atau suasana yang Anda ketik</p>
+        <p class="field-hint">Mencari spesifik berdasarkan nama menu, suasana, atau fasilitas</p>
       </section>
 
       <!-- Main Action Buttons -->
@@ -200,86 +180,54 @@
     </aside>
   </div>
 
-  <!-- ===== GOOGLE MAPS API KEY & QUOTA GUARD MODAL ===== -->
-  <div class="modal-overlay" id="api-key-modal" hidden role="dialog" aria-modal="true" aria-labelledby="api-modal-title">
-    <div class="modal-backdrop" id="api-modal-backdrop"></div>
-    <div class="modal-card spotlight-card" style="max-width: 480px;">
-      <button class="modal-close" id="api-modal-close" aria-label="Tutup modal kunci API">✕</button>
+  <!-- ===== DATABASE & SCRAPER MODAL (React Bits SpotlightCard) ===== -->
+  <div class="modal-overlay" id="database-modal" hidden role="dialog" aria-modal="true" aria-labelledby="data-modal-title">
+    <div class="modal-backdrop" id="database-backdrop"></div>
+    <div class="modal-card spotlight-card" style="max-width: 500px;">
+      <button class="modal-close" id="database-close" aria-label="Tutup modal database">✕</button>
 
       <div class="modal-inner-padding">
-        <div style="display: flex; gap: 8px; align-items: center;">
-          <span class="api-modal-badge">PENGATURAN API</span>
-          <span class="api-modal-badge" style="background: rgba(16, 185, 129, 0.15); color: #10b981; border-color: rgba(16, 185, 129, 0.3);">ANTI PAY-AS-YOU-GO</span>
+        <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 6px;">
+          <span class="api-modal-badge">DATABASE PLACES</span>
+          <span class="api-modal-badge" style="background: rgba(16, 185, 129, 0.15); color: #10b981; border-color: rgba(16, 185, 129, 0.3);">100% GITHUB PAGES</span>
         </div>
 
-        <h2 class="api-modal-title" id="api-modal-title">Google Maps & Perlindungan Biaya</h2>
+        <h2 class="api-modal-title" id="data-modal-title">Data Tempat Google Maps</h2>
 
-        <!-- Key Input Section -->
-        <div class="api-key-input-wrap">
-          <label class="slider-label" for="input-api-key">Kunci API Anda:</label>
-          <input
-            type="text"
-            id="input-api-key"
-            class="field-input font-mono"
-            placeholder="AIzaSy..."
-            autocomplete="off"
-            spellcheck="false"
-          />
-          <small class="field-hint">
-            🔒 <strong>Keamanan GitHub:</strong> Kunci hanya tersimpan di <code>localStorage</code> peramban Anda. Kunci <strong>TIDAK AKAN bocor</strong> saat Anda push kode ke GitHub.
-          </small>
-        </div>
-
-        <!-- Quota Guard Settings Box -->
-        <div class="quota-settings-box">
-          <h3 style="font-size: 0.85rem; font-weight: 700; color: #f8fafc; margin-bottom: 8px;">🛡️ Kuota & Pengaman Tagihan</h3>
+        <!-- Stats Section -->
+        <div class="quota-settings-box" style="margin-top: 14px;">
+          <h3 style="font-size: 0.85rem; font-weight: 700; color: #f8fafc; margin-bottom: 8px;">📊 Status Dataset Aktif</h3>
           
           <div class="quota-stat-row">
-            <span>Panggilan Hari Ini:</span>
-            <strong id="stat-daily-calls">0 / 80</strong>
+            <span>Total Tempat Tersedia:</span>
+            <strong id="stat-total-places" style="color: #f97316;">0 tempat</strong>
           </div>
-          <div class="quota-stat-row">
-            <span>Panggilan Bulan Ini:</span>
-            <strong id="stat-monthly-calls">0 / 1500</strong>
-          </div>
-
-          <div style="margin-top: 10px;">
-            <label class="slider-label" for="input-daily-limit" style="font-size: 0.76rem;">Batas Panggilan Maksimal Per Hari:</label>
-            <input
-              type="number"
-              id="input-daily-limit"
-              class="field-input"
-              value="80"
-              min="10"
-              max="1000"
-              style="padding: 6px 10px; font-size: 0.82rem; margin-top: 4px;"
-            />
-            <small class="field-hint">Jika batas tercapai, aplikasi otomatis berhenti mengirim panggilan ke Google.</small>
+          <div class="quota-stat-row" style="margin-top: 6px;">
+            <span>Penyimpanan:</span>
+            <strong style="color: #10b981;">assets/data/places.json</strong>
           </div>
 
-          <div id="quota-lock-status-area" style="margin-top: 10px;" hidden>
-            <div style="background: rgba(239, 68, 68, 0.15); border: 1px solid #ef4444; border-radius: 6px; padding: 8px 10px; font-size: 0.78rem; color: #fca5a5;">
-              <strong id="lock-reason-text">Aplikasi terkunci.</strong>
-              <button id="btn-reset-lock" class="action-link" style="color: #ffffff; display: block; margin-top: 4px; text-decoration: underline;">
-                Buka Kunci Pengaman Sekarang
-              </button>
-            </div>
+          <div style="margin-top: 12px;">
+            <span style="font-size: 0.78rem; color: #94a3b8; display: block; margin-bottom: 6px;">Sebaran Kategori:</span>
+            <div id="stat-cat-breakdown" style="display: flex; flex-wrap: wrap; gap: 6px;"></div>
           </div>
         </div>
 
-        <div class="api-modal-actions">
-          <button class="btn-primary" id="btn-save-api-key">
-            <span>Simpan Pengaturan</span>
+        <!-- Scraper Instructions -->
+        <div class="quota-settings-box" style="margin-top: 14px; background: rgba(15, 23, 42, 0.6);">
+          <h3 style="font-size: 0.85rem; font-weight: 700; color: #f8fafc; margin-bottom: 6px;">⚡ Cara Scrape & Update Data</h3>
+          <p style="font-size: 0.78rem; color: #94a3b8; line-height: 1.5; margin-bottom: 8px;">
+            Jalankan scraper di komputer Anda. File <code>places.json</code> akan otomatis ter-update dan siap Anda push ke GitHub:
+          </p>
+          <code style="display: block; background: #090a0f; border: 1px solid #222634; padding: 8px 10px; border-radius: 6px; font-family: var(--font-mono); font-size: 0.78rem; color: #f97316;">
+            .\scraper\run.ps1
+          </code>
+        </div>
+
+        <div class="api-modal-actions" style="margin-top: 16px;">
+          <button class="btn-primary" id="btn-reload-data" style="width: 100%;">
+            <span>Muat Ulang Database</span>
           </button>
-        </div>
-
-        <div class="api-help-links">
-          <a href="https://console.cloud.google.com/google/maps-apis/credentials" target="_blank" rel="noopener noreferrer" class="action-link">
-            Buka Google Cloud Console (Dapatkan Kredit Gratis $200/Bulan)
-          </a>
-          <small style="color: #64748b; font-size: 0.72rem; display: block; margin-top: 4px;">
-            💡 <strong>Rekomendasi Google:</strong> Pasang pembatasan HTTP Referrer ke <code>https://&lt;username&gt;.github.io/*</code> pada Google Cloud Console agar API Key Anda tidak bisa disalahgunakan pihak lain.
-          </small>
         </div>
       </div>
     </div>
@@ -370,12 +318,16 @@
   <div class="loading-scrim" id="loading-overlay" hidden aria-busy="true" aria-label="Sedang memilihkan tempat...">
     <div class="loading-card spotlight-card">
       <div class="loading-dice">🎲</div>
-      <h3 class="loading-title">Mencari via Google Places<span class="dots"></span></h3>
-      <p class="loading-desc">Memfilter tempat terbaik sesuai kriteria Anda</p>
+      <h3 class="loading-title">Mengacak Tempat Pilihan<span class="dots"></span></h3>
+      <p class="loading-desc">Memfilter tempat terbaik dari data Google Maps</p>
     </div>
   </div>
 
-  <!-- Application Entry -->
-  <script type="module" src="assets/js/app.js"></script>
+  <!-- Leaflet Script -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+  <!-- Places Dataset (Supports both file:// and http://) -->
+  <script src="assets/data/places.js"></script>
+  <!-- Application Bundle (Runs seamlessly on file:// double-click and GitHub Pages) -->
+  <script src="assets/js/app.bundle.js"></script>
 </body>
 </html>

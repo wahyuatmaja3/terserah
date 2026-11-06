@@ -191,9 +191,15 @@ h1, h2, h3, h4 {
   z-index: 1;
 }
 
-/* Subtle tile tone */
-.leaflet-tile {
-  filter: brightness(0.92) contrast(1.04);
+/* Dark Obsidian Map Tiles (Esri Dark Gray Canvas) */
+.dark-tiles {
+  filter: brightness(0.9) contrast(1.15);
+}
+
+.leaflet-container {
+  background: #090a0f !important;
+  font-family: var(--font-body) !important;
+  outline: none;
 }
 
 .map-hint {
@@ -1035,6 +1041,50 @@ h1, h2, h3, h4 {
 .popup-desc {
   font-size: 0.75rem;
   color: #94a3b8;
+}
+
+/* ---------- Leaflet Custom Controls & Attribution ---------- */
+.leaflet-bar {
+  border: 1px solid var(--border-subtle) !important;
+  border-radius: var(--radius-sm) !important;
+  overflow: hidden;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45) !important;
+}
+
+.leaflet-bar a {
+  background-color: #12141c !important;
+  color: var(--text-main) !important;
+  border-bottom: 1px solid var(--border-subtle) !important;
+  transition: background var(--transition-fast), color var(--transition-fast) !important;
+}
+
+.leaflet-bar a:hover {
+  background-color: #1a1e2b !important;
+  color: var(--accent-orange) !important;
+}
+
+.leaflet-bar a.leaflet-disabled {
+  background-color: #0b0d14 !important;
+  color: var(--text-dim) !important;
+}
+
+.leaflet-control-attribution {
+  background: rgba(9, 10, 15, 0.85) !important;
+  color: var(--text-dim) !important;
+  font-size: 11px !important;
+  backdrop-filter: blur(8px);
+  border-top-left-radius: 6px;
+  padding: 3px 8px !important;
+}
+
+.leaflet-control-attribution a {
+  color: var(--text-muted) !important;
+  text-decoration: none;
+}
+
+.leaflet-control-attribution a:hover {
+  color: var(--accent-orange) !important;
+  text-decoration: underline;
 }
 
 @keyframes pulseMarker {

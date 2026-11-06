@@ -4,8 +4,8 @@
   "description": "Bingung mau ke mana? Biarkan Terserah yang memilihkan!",
   "start_url": "./",
   "display": "standalone",
-  "background_color": "#f8f7ff",
-  "theme_color": "#6C63FF",
+  "background_color": "#090a0f",
+  "theme_color": "#f97316",
   "orientation": "portrait-primary",
   "icons": [
     {

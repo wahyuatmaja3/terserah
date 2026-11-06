@@ -1,9 +1,11 @@
-const CACHE_NAME = 'terserah-v2';
+const CACHE_NAME = 'terserah-v5';
 
 const STATIC_ASSETS = [
   './',
   './index.html',
   './assets/css/style.css',
+  './assets/js/app.bundle.js',
+  './assets/data/places.js',
   './assets/js/app.js',
   './assets/js/api.js',
   './assets/js/filter.js',
@@ -35,7 +37,9 @@ self.addEventListener('fetch', (event) => {
 
   // Do not intercept or cache external map tiles or OSM APIs
   if (
+    url.hostname.includes('arcgisonline.com') ||
     url.hostname.includes('openstreetmap.org') ||
+    url.hostname.includes('cartocdn.com') ||
     url.hostname.includes('overpass') ||
     url.hostname.includes('komoot.io') ||
     url.hostname.includes('cloudflare') ||

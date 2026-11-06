@@ -1,0 +1,11 @@
+# Scraper temporary intermediate files
+scraper/results.csv
+scraper/results.json
+scraper/output.csv
+scraper/output.json
+
+# OS & Editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
