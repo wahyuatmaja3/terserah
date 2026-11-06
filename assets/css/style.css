@@ -377,10 +377,40 @@ h1, h2, h3, h4 {
 .slider-track {
   width: 100%;
   accent-color: var(--accent);
-  height: 6px;
+  height: 8px;
   border-radius: var(--radius-full);
   background: var(--bg-surface-elev);
   outline: none;
+  cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.slider-track::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: 3px solid #090a0f;
+  box-shadow: 0 0 12px var(--accent-glow);
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.slider-track::-webkit-slider-thumb:active {
+  transform: scale(1.15);
+  box-shadow: 0 0 18px rgba(249, 115, 22, 0.8);
+}
+
+.slider-track::-moz-range-thumb {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: 3px solid #090a0f;
+  box-shadow: 0 0 12px var(--accent-glow);
   cursor: pointer;
 }
 
@@ -388,22 +418,29 @@ h1, h2, h3, h4 {
 .chips-container {
   display: flex;
   flex-wrap: wrap;
-  gap: 7px;
+  gap: 8px;
 }
 
 .filter-chip {
   background: var(--bg-surface-elev);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-full);
-  padding: 6px 14px;
+  padding: 8px 16px;
+  min-height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
   color: var(--text-muted);
   font-family: var(--font-body);
-  font-size: 0.8rem;
+  font-size: 0.86rem;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.18s var(--ease-smooth);
   user-select: none;
   white-space: nowrap;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .filter-chip:hover {
@@ -1245,6 +1282,196 @@ h1, h2, h3, h4 {
 .quota-stat-row strong {
   font-family: var(--font-mono);
   color: var(--accent);
+}
+
+/* ============================================================
+   Mobile & Android Touch Screen Optimizations
+   ============================================================ */
+
+/* Touch responsiveness & eliminate 300ms tap delay */
+button,
+.filter-chip,
+.nav-btn,
+.action-btn,
+.btn-primary,
+.btn-secondary,
+.btn-input-action,
+.modal-close,
+.drawer-close {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+@media (max-width: 819px) {
+  /* Workspace layout: compact map so controls have comfortable space */
+  .app-workspace {
+    grid-template-rows: 36vh 1fr;
+    height: calc(100dvh - var(--header-h));
+  }
+
+  .map-viewport {
+    min-height: 200px;
+  }
+
+  /* Control Panel: generous thumb-friendly padding */
+  .control-panel {
+    padding: 18px 16px calc(38px + env(safe-area-inset-bottom, 16px));
+    gap: 20px;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Filter Chips: large, easily tappable on Android */
+  .chips-container {
+    gap: 9px;
+  }
+
+  .filter-chip {
+    padding: 11px 18px;
+    min-height: 44px;
+    font-size: 0.92rem;
+    font-weight: 600;
+    border-radius: var(--radius-full);
+  }
+
+  .filter-chip:active {
+    transform: scale(0.96);
+  }
+
+  /* Form Fields: 16px font prevents auto-zoom on Android/iOS, large hit targets */
+  .field-input {
+    padding: 13px 14px;
+    font-size: 1rem;
+    min-height: 48px;
+  }
+
+  .btn-input-action {
+    width: 48px;
+    height: 48px;
+    min-width: 48px;
+    font-size: 1.25rem;
+  }
+
+  /* Main Action Button: prominent, full-width thumb button */
+  .btn-primary {
+    min-height: 56px;
+    font-size: 1.12rem;
+    font-weight: 800;
+    border-radius: 14px;
+    padding: 16px 20px;
+    box-shadow: 0 6px 24px rgba(249, 115, 22, 0.45);
+  }
+
+  .btn-secondary {
+    min-height: 48px;
+    font-size: 0.95rem;
+    padding: 12px 16px;
+    border-radius: 12px;
+  }
+
+  /* Result Modal: comfortable bottom sheet on mobile */
+  .modal-card {
+    border-radius: 20px 20px 0 0;
+    max-height: 86dvh;
+  }
+
+  .card-content {
+    padding: 20px 18px calc(24px + env(safe-area-inset-bottom, 12px));
+    gap: 14px;
+  }
+
+  .card-actions-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-top: 10px;
+  }
+
+  .action-btn {
+    min-height: 50px;
+    padding: 13px 14px;
+    font-size: 0.92rem;
+    font-weight: 700;
+    border-radius: 12px;
+  }
+
+  .modal-close,
+  .drawer-close {
+    width: 42px;
+    height: 42px;
+    font-size: 1.1rem;
+  }
+
+  /* Drawers */
+  .drawer-panel {
+    width: min(380px, 92vw);
+  }
+
+  .drawer-header {
+    padding: 18px 16px;
+  }
+
+  .drawer-footer {
+    padding: 14px 16px calc(18px + env(safe-area-inset-bottom, 12px));
+  }
+}
+
+@media (max-width: 520px) {
+  /* Header: tidy brand and comfortable nav buttons */
+  .header-container {
+    padding: 0 12px;
+    gap: 8px;
+  }
+
+  .brand-title {
+    display: none; /* Hide subtitle so nav buttons have maximum room */
+  }
+
+  .brand-badge {
+    font-size: 0.78rem;
+    padding: 6px 10px;
+  }
+
+  .header-nav {
+    gap: 6px;
+  }
+
+  .nav-btn {
+    padding: 8px 11px;
+    min-height: 40px;
+    font-size: 0.8rem;
+    gap: 6px;
+    border-radius: 10px;
+  }
+
+  .nav-btn-icon {
+    font-size: 1rem;
+  }
+
+  /* Map hints & badge */
+  .map-hint {
+    max-width: 90%;
+    font-size: 0.72rem;
+    padding: 6px 14px;
+    white-space: normal;
+    text-align: center;
+  }
+
+  .pool-badge {
+    font-size: 0.78rem;
+    padding: 7px 16px;
+  }
+}
+
+@media (max-width: 380px) {
+  .nav-btn {
+    padding: 7px 8px;
+    font-size: 0.75rem;
+    gap: 4px;
+  }
+  
+  .filter-chip {
+    padding: 10px 14px;
+    font-size: 0.88rem;
+  }
 }
 
 /* Utility */
